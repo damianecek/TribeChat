@@ -1,0 +1,74 @@
+#FRONTEND
+
+.DS_Store
+.thumbs.db
+node_modules
+
+# Quasar core related directories
+.quasar
+/dist
+/quasar.config.*.temporary.compiled*
+
+# Cordova related directories and files
+/src-cordova/node_modules
+/src-cordova/platforms
+/src-cordova/plugins
+/src-cordova/www
+
+# Capacitor related directories and files
+/src-capacitor/www
+/src-capacitor/node_modules
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# local .env files
+.env.local*
+
+
+#BACKEND
+
+
+# Dependencies and AdonisJS build
+node_modules
+build
+tmp
+
+# Secrets
+.env
+.env.local
+.env.production.local
+.env.development.local
+
+# Frontend assets compiled code
+public/assets
+
+# Build tools specific
+npm-debug.log
+yarn-error.log
+
+# Editors specific
+.fleet
+.idea
+.vscode
+
+# Platform specific
+.DS_Store
+
+
+#DOCKER
+docker-compose.override.yml
+*.log
+*.pid
+
+# VSCode
+.vscode/
