@@ -13,15 +13,6 @@ TribeChat je full-stack projekt s Quasar frontendom (SPA) a AdonisJS backendom. 
 
 ---
 
-## Štruktúra projektu
-
-TribeChat/
-├── backend/       # AdonisJS backend
-├── frontend/      # Quasar frontend
-├── docker-compose.yml
-└── README.md
-
----
 
 ## Spustenie projektu
 
