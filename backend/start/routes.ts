@@ -8,17 +8,11 @@
 */
 
 import router from '@adonisjs/core/services/router'
-import User from '#models/user'
+import { middleware } from './kernel.js'
 
-router.get('/', async () => {
-  return {
-    hello: 'world',
-  }
-})
+const AuthController = () => import('#controllers/auth_controller')
 
-// Nová route pre testovanie userov
-router.get('/test-users', async () => {
-  const users = await User.all() // načíta všetkých userov z DB
-  return users
-})
-
+router.post('/register', [AuthController, 'register'])
+router.post('/login', [AuthController, 'login'])
+router.post('/logout', [AuthController, 'logout']).use(middleware.auth())
+router.get('/me', [AuthController, 'me']).use(middleware.auth())
