@@ -1,75 +1,66 @@
-# TribeChat
+# Projekt Setup
 
-TribeChat je full-stack projekt s Quasar frontendom (SPA) a AdonisJS backendom. PostgreSQL databáza beží v Docker konte, všetko spravované cez `docker-compose`.
-
----
-
-## Požiadavky
-
-- Docker & Docker Compose
-- Node.js (len ak chceš bežať mimo kontajnerov)
-- PostgreSQL client (voliteľné, pre prístup k DB)
-- VSCode s príslušnými extensionmi pre AdonisJS a Quasar (odporúčané)
+Tento projekt beží cez **Docker Compose** (frontend + backend + databáza).
+Postupuj podľa krokov nižšie, aby si ho rozbehal lokálne.
 
 ---
 
+## 1. Naklonovanie repozitára
 
-## Spustenie projektu
-
-1. Klonuj repozitár:
-
+```bash
 git clone https://github.com/damianecek/TribeChat.git
 cd TribeChat
+```
 
-2. Skopíruj `.env.example` do `.env` a uprav hodnoty podľa potreby:
+---
 
+## 2. Konfigurácia prostredia
+
+Skopíruj ukážkový `.env.example` súbor do `.env`:
+
+```bash
 cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
-
-3. Spusti Docker kontajnery:
-
-docker-compose up --build
-
-- Backend bude dostupný na: http://localhost:3333
-- Frontend bude dostupný na: http://localhost:8080
-- PostgreSQL bude na porte 5432
+```
 
 ---
 
-## Práca s backendom
+## 3. Vygenerovanie APP_KEY
 
-Ak potrebuješ spúšťať migrácie, seedovanie alebo iné príkazy:
+APP_KEY je potrebný pre bezpečnosť (šifrovanie cookies, sessions).
+Vygeneruješ ho príkazom:
 
-docker-compose exec backend <command>
+```bash
+docker compose run --rm backend node ace generate:key
+```
 
-Príklady:
-
-docker-compose exec backend node ace migration:run
-docker-compose exec backend node ace db:seed
-docker-compose exec backend node ace serve --watch
-
----
-
-## Práca s frontendom
-
-Frontend beží vo vlastnom kontajneri:
-
-docker-compose exec frontend quasar dev
-
-- FE volá BE cez http://backend:3333 (z Docker network)
-- Ak chceš testovať mimo kontajnera, môžeš použiť http://localhost:3333
+Výsledný kľúč skopíruj do súboru `backend/.env` na miesto `APP_KEY`.
 
 ---
 
-## Práca s databázou
+## 4. Spustenie projektu
 
-Prístup do PostgreSQL:
+Stačí spustiť:
 
-docker-compose exec db psql -U root -d app
+```bash
+docker compose up --build
+```
 
-- Pripojenie: Host: localhost, Port: 5432, Database: app, User: root, Password: root
+---
 
-- Použi node ace serve --watch pre hot-reload backendu
-- Použi quasar dev pre hot-reload frontendu
-- Vždy pracuj cez Docker, aby sa zachovala konzistencia prostredí
-- Pri zmene .env reštartuj príslušné kontajnery
+## 5. Hotovo
+
+* **Frontend** bude bežať na [http://localhost:9000](http://localhost:9000) (v dev režime).
+* **Backend API** bude bežať na [http://localhost:3333](http://localhost:3333).
+* Databáza (Postgres) beží na porte `5432`.
+
+Migrácie sa spustia automaticky pri štarte backendu.
+
+---
+
+Ak by si chcel databázu resetovať, použi:
+
+```bash
+docker compose down -v
+```
+
+(tým zmažeš aj databázový volume).

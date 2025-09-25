@@ -1,22 +1,16 @@
-# 1. Base image
-FROM node:20-alpine AS build
+FROM node:20-alpine
 
 WORKDIR /app
 
-# 2. Install Quasar CLI globally
+# Nainštaluj Quasar CLI globálne
 RUN npm install -g @quasar/cli
 
-# 3. Copy all files first (dôležité!)
+# Skopíruj celý projekt (nie len package.json)
 COPY . .
 
-# 4. Install dependencies
+# Nainštaluj všetky dependencies (aj dev)
 RUN npm install
 
-# 5. Build the SPA
-RUN quasar build
+EXPOSE 9000
 
-# 6. Serve with nginx
-FROM nginx:alpine
-COPY --from=build /app/dist/spa /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["quasar", "dev"]

@@ -13,9 +13,12 @@ RUN npm install
 # 5. Copy the rest of the code
 COPY . .
 
-# 6. Expose port
+# 6. Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# 7. Expose port
 EXPOSE 3333
 
-# 7. Start server
-CMD ["node", "ace", "serve", "--watch"]
-
+# 8. Start via entrypoint
+CMD ["/app/entrypoint.sh"]
