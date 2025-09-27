@@ -58,7 +58,17 @@ function closeTab(id: string) {
   const idx = tabs.value.findIndex(t => t.id === id)
   if (idx !== -1) {
     tabs.value.splice(idx, 1)
-    activeTab.value = tabs.value.length ? tabs.value[Math.max(0, idx - 1)].id : ''
+
+    if (activeTab.value === id) {
+      if (tabs.value.length > 0) {
+        const fallbackIdx = Math.max(0, idx - 1)
+        const fallbackTab = tabs.value[fallbackIdx]
+        activeTab.value = fallbackTab ? fallbackTab.id : ''
+      } else {
+        activeTab.value = ''
+      }
+    }
   }
 }
+
 </script>
