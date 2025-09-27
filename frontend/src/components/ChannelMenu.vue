@@ -1,6 +1,8 @@
 <template>
-  <div class="q-pa-md">
-    <h6>Channels</h6>
+  <div class="q-pt-md">
+    <q-toolbar class="bg-primary text-white shadow-2">
+      <q-toolbar-title>Channels</q-toolbar-title>
+    </q-toolbar>
     <q-list>
       <q-item
         v-for="channel in channels"

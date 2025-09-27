@@ -1,7 +1,15 @@
 <template>
-  <div class="q-pa-md">
+  <div class="q-pt-md column fit">
     <!-- Tab Bar -->
-    <q-tabs :value="activeTab" @input="$emit('update:activeTab', $event)" shrink stretch inline-label align="left">
+    <q-tabs
+      :model-value="activeTab"
+      @update:model-value="$emit('update:activeTab', $event)"
+      shrink
+      stretch
+      inline-label
+      align="left"
+      class="col-auto"
+    >
       <q-tab
         v-for="tab in tabs"
         :key="tab.id"
@@ -10,6 +18,7 @@
       >
         <q-btn
           flat
+          dense
           round
           size="sm"
           icon="close"
@@ -31,20 +40,37 @@
     <!-- Tab Content Panels -->
     <q-tab-panels
       :model-value="activeTab"
+      @update:model-value="$emit('update:activeTab', $event)"
       animated
+      class="col column"
     >
       <q-tab-panel
         v-for="tab in tabs"
         :key="tab.id"
         :name="tab.id"
+        class="column fit"
       >
-        {{ tab.content }}
+        <!-- New component -->
+         <div class = "column fit">
+           <MessageList />
+         </div>
+
+        <!-- Input area (fixed below scroll) -->
       </q-tab-panel>
     </q-tab-panels>
+    <div class="q-pa-md" style="max-width: 600px">
+      <q-input
+        v-model="text"
+        filled
+        autogrow
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
+import MessageList from 'components/MessageList.vue'
 
 interface Tab {
   id: string
@@ -54,12 +80,15 @@ interface Tab {
 
 defineProps<{
   tabs: Tab[]
-  activeTab: string
+  activeTab: string | number
 }>()
 
 defineEmits<{
-  (e: 'update:activeTab', val: string): void
+  (e: 'update:activeTab', val: string | number): void
   (e: 'close-tab', id: string): void
   (e: 'add-tab'): void
 }>()
+
+const text = ref('')
+
 </script>

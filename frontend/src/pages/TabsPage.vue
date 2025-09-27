@@ -6,13 +6,14 @@
       </template>
 
       <template v-slot:after>
-        <div class="col" style="background-color: #f5f5f5; height: 93vh;">
+        <div class="col" style=" height: 93vh;">
           <ChannelTabs
             :tabs="tabs"
-            :active-tab="activeTab"
+            v-model:activeTab="activeTab"
             @close-tab="closeTab"
             @add-tab="addTab"
           />
+
         </div>
       </template>
     </q-splitter>
@@ -34,7 +35,7 @@ const channels = ref<Channel[]>([
 ])
 
 const tabs = ref<Tab[]>([])
-const activeTab = ref('')
+const activeTab = ref<string | number>('') // allow string | number
 const splitter = ref(15)
 
 function openChannel(channel: Channel) {
