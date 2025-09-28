@@ -22,11 +22,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+
+import type { Tab, Channel } from 'src/types';
+
 import ChannelMenu from 'components/ChannelMenu.vue'
 import ChannelTabs from 'components/ChannelTabs.vue'
-
-interface Tab { id: string; label: string; content: string }
-interface Channel { id: string; name: string }
 
 const channels = ref<Channel[]>([
   { id: 'c1', name: 'General' },

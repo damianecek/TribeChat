@@ -19,10 +19,7 @@
 <script setup lang="ts">
 //import { PropType } from 'vue'
 
-interface Channel {
-  id: string
-  name: string
-}
+import type { Channel } from 'src/types';
 
 defineProps<{
   channels: Channel[]

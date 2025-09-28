@@ -22,22 +22,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { api } from 'boot/axios'
-import type { User, MeResponse } from '../types/auth'
+import { computed } from 'vue'
+import { useAuthStore } from 'stores/auth'
 
-
-const router = useRouter()
-const user = ref<User | null>(null)
-
-onMounted(async () => {
-  try {
-    const res = await api.get<MeResponse>('/me')
-    user.value = res.data.user
-  } catch (err) {
-    console.error(err)
-    await router.push('/login')
-  }
-})
+const auth = useAuthStore()
+const user = computed(() => auth.user)
 </script>

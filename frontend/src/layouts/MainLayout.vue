@@ -46,9 +46,11 @@
 
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
-import { api } from 'boot/axios'
 import { computed } from 'vue'
 import { Dark } from 'quasar'
+import { useAuthStore } from 'stores/auth'
+
+const auth = useAuthStore()
 
 Dark.set(false)
 
@@ -59,9 +61,7 @@ const route = useRoute()
 const isProfilePage = computed(() => route.path === '/profile')
 
 // ✅ Check login state
-const isLoggedIn = computed(() => {
-  return Boolean(localStorage.getItem('token'))
-})
+const isLoggedIn = computed(() => auth.isLoggedIn)
 
 // ✅ Navigation helpers
 const goHome = async () => {
@@ -82,14 +82,7 @@ const goProfile = async () => {
 
 // ✅ Logout logic
 async function logout() {
-  try {
-    await api.post('/logout')
-  } catch (err) {
-    console.error(err)
-  } finally {
-    localStorage.removeItem('token')
-    delete api.defaults.headers.common['Authorization']
-    await router.push('/')
-  }
+  await auth.logout()
+  await router.push('/') // or '/'
 }
 </script>

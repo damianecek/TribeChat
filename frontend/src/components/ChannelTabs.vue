@@ -70,13 +70,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import MessageList from 'components/MessageList.vue'
 
-interface Tab {
-  id: string
-  label: string
-  content: string
-}
+import type { Tab } from 'src/types'
+
+import MessageList from 'components/MessageList.vue'
 
 defineProps<{
   tabs: Tab[]
