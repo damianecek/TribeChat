@@ -1,11 +1,12 @@
 import type { RouteRecordRaw } from 'vue-router'
 import MainLayout from 'layouts/MainLayout.vue'
+import AppLayout from 'src/layouts/AppLayout.vue'
 import IndexPage from 'pages/IndexPage.vue'
 import LoginPage from 'pages/LoginPage.vue'
 import RegisterPage from 'pages/RegisterPage.vue'
 import ProfilePage from 'pages/ProfilePage.vue'
 
-import TabsPage from 'pages/TabsPage.vue'
+import MainPage from 'pages/MainPage.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -13,12 +14,18 @@ const routes: RouteRecordRaw[] = [
     component: MainLayout,
     children: [
       { path: '', component: IndexPage},
-      { path: 'main', component: TabsPage, meta: { requiresAuth: true } },
       { path: 'login', component: LoginPage },
       { path: 'register', component: RegisterPage },
       { path: 'profile', component: ProfilePage, meta: { requiresAuth: true }},
     ],
   },
+  {
+    path: '/main',
+    component: AppLayout,
+    children: [
+      { path: '', component: MainPage, meta: { requiresAuth: true } }
+    ]
+  }
 ]
 
 export default routes

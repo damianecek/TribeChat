@@ -1,5 +1,5 @@
 <template>
-  <div class="q-pt-md column fit">
+  <div class="q-card q-card--dark q-dark q-card--bordered q-card--flat no-shadow q-my-lg column" style="height: 82vh;">
     <!-- Tab Bar -->
     <q-tabs
       :model-value="activeTab"
@@ -8,7 +8,7 @@
       stretch
       inline-label
       align="left"
-      class="col-auto"
+      class="col"
     >
       <q-tab
         v-for="tab in tabs"
@@ -51,25 +51,17 @@
         class="column fit"
       >
         <!-- New component -->
-         <div class = "column fit">
-           <MessageList />
-         </div>
 
-        <!-- Input area (fixed below scroll) -->
+        <MessageList />
+
+
       </q-tab-panel>
     </q-tab-panels>
-    <div class="q-pa-md" style="max-width: 600px">
-      <q-input
-        v-model="text"
-        filled
-        autogrow
-      />
-    </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 
 import type { Tab } from 'src/types'
 
@@ -86,6 +78,11 @@ defineEmits<{
   (e: 'add-tab'): void
 }>()
 
-const text = ref('')
 
 </script>
+
+<style scoped>
+.doc-example__content--scrollable {
+  max-height: 400px;
+}
+</style>

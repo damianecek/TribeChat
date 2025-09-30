@@ -2,6 +2,9 @@
   <q-layout view="lHh Lpr lFf">
     <q-header class="bg-dark">
       <q-toolbar>
+        <q-btn dense flat round icon="menu" @click="toggleLeftDrawer" />
+
+
         <q-toolbar-title class="cursor-pointer" @click="goHome">
           TribeChat
         </q-toolbar-title>
@@ -38,21 +41,34 @@
       </q-toolbar>
     </q-header>
 
+    <q-drawer show-if-above v-model="leftDrawerOpen" side="left" bordered>
+      <!-- drawer content -->
+       <ChannelMenu/>
+    </q-drawer>
+
     <q-page-container>
       <router-view />
     </q-page-container>
+
+    <q-footer class="text-center">
+      <ComandInputPanel />
+    </q-footer>
   </q-layout>
+
 </template>
 
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
-import { computed } from 'vue'
+import { computed,ref } from 'vue'
 import { Dark } from 'quasar'
 import { useAuthStore } from 'stores/auth'
+import ChannelMenu from 'components/ChannelMenu.vue'
+import ComandInputPanel from 'src/components/ComandInputPanel.vue'
 
 const auth = useAuthStore()
 
 Dark.set(true)
+const leftDrawerOpen = ref(false)
 
 const router = useRouter()
 const route = useRoute()
@@ -80,9 +96,15 @@ const goProfile = async () => {
   await router.push('/profile')
 }
 
+const toggleLeftDrawer = () => {
+  leftDrawerOpen.value = !leftDrawerOpen.value
+}
+
 // ✅ Logout logic
 async function logout() {
   await auth.logout()
   await router.push('/') // or '/'
 }
+
+
 </script>
