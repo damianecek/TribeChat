@@ -69,7 +69,7 @@ const goHome = async () => {
 }
 
 const goLogin = async () => {
-  await router.push('/log+in')
+  await router.push('/login')
 }
 
 const goRegister = async () => {

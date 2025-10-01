@@ -1,6 +1,6 @@
 <template>
   <!-- Input area (fixed below scroll) -->
-  <div class="q-pa-md" style="max-width: 1000px">
+  <div class="q-px-md col">
     <q-input
       v-model="text"
       filled

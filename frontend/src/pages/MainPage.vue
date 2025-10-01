@@ -1,12 +1,19 @@
 <template>
-  <q-page class="q-px-md fit">
-    <ChannelTabs
-      :tabs="tabsStore.tabs"
-      :activeTab="tabsStore.activeTab"
-      @update:activeTab="handleUpdateActiveTab"
-      @close-tab="handleCloseTab"
-      @add-tab="handleAddTab"
-    />
+  <q-page class="q-pa-md fit column">
+    <q-card
+      class="q-card--bordered q-card--flat no-shadow fit column"
+      :dark="$q.dark.isActive"
+    >
+      <ChannelTabs
+        :tabs="tabsStore.tabs"
+        :activeTab="tabsStore.activeTab"
+        @update:activeTab="handleUpdateActiveTab"
+        @close-tab="handleCloseTab"
+        @add-tab="handleAddTab"
+      />
+
+      <ComandInputPanel />
+    </q-card>
   </q-page>
 </template>
 
@@ -14,6 +21,7 @@
 // filepath: /home/namelessnovice/Desktop/VPWA/TribeChat/frontend/src/pages/MainPage.vue
 import { useTabsStore } from 'stores/tabs'
 import ChannelTabs from 'components/ChannelTabs.vue'
+import ComandInputPanel from 'src/components/ComandInputPanel.vue'
 
 const tabsStore = useTabsStore()
 

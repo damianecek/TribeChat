@@ -5,9 +5,24 @@
         <q-btn dense flat round icon="menu" @click="toggleLeftDrawer" />
 
 
-        <q-toolbar-title class="cursor-pointer" @click="goHome">
+        <q-toolbar-title
+          class="cursor-pointer row justify-center"
+          :class="titleColor"
+          @click="goHome"
+        >
           TribeChat
         </q-toolbar-title>
+
+        <!-- Dark/Light Mode Switch -->
+        <q-btn
+          dense
+          flat
+          round
+          :icon="isDark ? 'dark_mode' : 'light_mode'"
+          @click="toggleDark"
+          :color="isDark ? 'secondary' : 'grey-8'"
+          class="q-mr-sm"
+        />
 
         <!-- Right side buttons -->
         <div class="row items-center q-gutter-sm">
@@ -41,18 +56,19 @@
       </q-toolbar>
     </q-header>
 
-    <q-drawer show-if-above v-model="leftDrawerOpen" side="left" bordered>
-      <!-- drawer content -->
-       <ChannelMenu/>
+    <q-drawer
+      show-if-above
+      v-model="leftDrawerOpen"
+      side="left"
+      class="custom-drawer"
+    >
+      <ChannelMenu/>
     </q-drawer>
 
     <q-page-container>
       <router-view />
     </q-page-container>
 
-    <q-footer class="text-center">
-      <ComandInputPanel />
-    </q-footer>
   </q-layout>
 
 </template>
@@ -63,11 +79,17 @@ import { computed,ref } from 'vue'
 import { Dark } from 'quasar'
 import { useAuthStore } from 'stores/auth'
 import ChannelMenu from 'components/ChannelMenu.vue'
-import ComandInputPanel from 'src/components/ComandInputPanel.vue'
 
 const auth = useAuthStore()
 
-Dark.set(true)
+// Dark mode state
+const isDark = computed(() => Dark.isActive)
+const toggleDark = () => {
+  Dark.set(!Dark.isActive)
+}
+
+const titleColor = computed(() => isDark.value ? 'text-white' : 'text-white')
+
 const leftDrawerOpen = ref(false)
 
 const router = useRouter()
@@ -85,7 +107,7 @@ const goHome = async () => {
 }
 
 const goLogin = async () => {
-  await router.push('/log+in')
+  await router.push('/login')
 }
 
 const goRegister = async () => {
@@ -108,3 +130,5 @@ async function logout() {
 
 
 </script>
+
+
