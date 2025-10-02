@@ -7,7 +7,7 @@
     stretch
     inline-label
     align="left"
-    class="col"
+    class="col-shrink"
   >
     <q-tab
       v-for="tab in tabs"
@@ -41,18 +41,18 @@
     :model-value="activeTab"
     @update:model-value="$emit('update:activeTab', $event)"
     animated
-    class="col-10 fit column"
+    class="col"
   >
     <q-tab-panel
       v-for="tab in tabs"
       :key="tab.id"
       :name="tab.id"
-      class="fit"
+      class="column"
+      style="height: 80vh;"
     >
       <!-- New component -->
 
       <MessageList />
-
 
     </q-tab-panel>
   </q-tab-panels>

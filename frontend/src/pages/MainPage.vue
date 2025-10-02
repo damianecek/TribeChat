@@ -1,7 +1,7 @@
 <template>
-  <q-page class="q-pa-md fit column">
+  <q-page class="main-page-root q-pa-md fit column">
     <q-card
-      class="q-card--bordered q-card--flat no-shadow fit column"
+      class="q-card--bordered q-card--flat no-shadow col column full-height"
       :dark="$q.dark.isActive"
     >
       <ChannelTabs
@@ -42,3 +42,9 @@ function handleAddTab() {
   })
 }
 </script>
+
+<style>
+.main-page-root {
+  height : 100%;
+}
+</style>

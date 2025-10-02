@@ -1,6 +1,6 @@
 <template>
   <!-- Input area (fixed below scroll) -->
-  <div class="q-px-md col">
+  <div class="col-shrink q-px-md q-mt-auto">
     <q-input
       v-model="text"
       filled
@@ -14,3 +14,4 @@ import { ref } from 'vue'
 const text = ref('')
 
 </script>
+

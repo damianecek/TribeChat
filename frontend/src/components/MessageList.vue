@@ -1,6 +1,6 @@
 <template>
-  <q-scroll-area class="message-list-scroll">
-    <q-infinite-scroll @load="onLoad" reverse scroll-target=".message-list-scroll__scroll">
+  <q-scroll-area class="col">
+    <q-infinite-scroll @load="onLoad" reverse>
       <template v-slot:loading>
         <div class="row justify-center q-my-md">
           <q-spinner color="primary" name="dots" size="40px" />
@@ -35,9 +35,3 @@ const onLoad = (index: number, done: () => void) => {
 }
 </script>
 
-<style scoped>
-.message-list-scroll {
-  height: 78vh;
-  min-height: 0;
-}
-</style>

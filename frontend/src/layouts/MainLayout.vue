@@ -47,12 +47,9 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
 import { computed } from 'vue'
-import { Dark } from 'quasar'
 import { useAuthStore } from 'stores/auth'
 
 const auth = useAuthStore()
-
-Dark.set(true)
 
 const router = useRouter()
 const route = useRoute()

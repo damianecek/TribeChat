@@ -3,17 +3,17 @@
     <!-- Toolbar -->
 
     <!-- Channel List -->
-    <q-list class="channel-list col-auto q-pa-md">
+    <q-list class="channel-list col q-pa-md">
       <q-card
-        class="q-card--bordered q-card--flat no-shadow col fit"
+        class="q-card--bordered q-card--flat column no-shadow fit"
         :dark="$q.dark.isActive"
       >
-        <q-toolbar>
+        <q-toolbar class="q-pa-sm col-auto">
           <q-toolbar-title>Channels</q-toolbar-title>
         </q-toolbar>
 
-        <q-scroll-area class="message-list-scroll">
-          <q-infinite-scroll reverse scroll-target=".message-list-scroll__scroll">
+        <q-scroll-area class="col fit">
+          <q-infinite-scroll reverse>
             <q-item
             v-for="channel in channels"
             :key="channel.id"
@@ -28,7 +28,7 @@
     </q-list>
 
     <!-- Profile Box at Bottom -->
-    <div class="q-pa-md q-mt-auto">
+    <div class="q-px-md q-pb-md q-mt-auto">
       <template v-if="isLoggedIn">
         <q-card
           class="q-card--bordered q-card--flat no-shadow column"
@@ -122,8 +122,5 @@ vueOnMounted(() => {
 .channel-menu-root {
   height: 100%;
 }
-.message-list-scroll {
-  height: 81vh;
-  min-height: 0;
-}
+
 </style>
