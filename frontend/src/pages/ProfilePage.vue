@@ -47,6 +47,31 @@
                 </div>
               </div>
             </q-card-section>
+
+<q-card-actions class="q-pa-md">
+  <div class="row q-col-gutter-sm full-width">
+    <div class="col">
+      <q-btn
+        color="primary"
+        label="go to main"
+        @click="goToMain"
+        unelevated
+        class="full-width"
+      />
+    </div>
+    <div class="col">
+      <q-btn
+        color="negative"
+        label="log out"
+        @click="handleLogout"
+        flat
+        class="full-width"
+      />
+    </div>
+  </div>
+</q-card-actions>
+
+
           </template>
         </q-card>
       </section>
@@ -56,10 +81,21 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from 'stores/auth'
 
 const auth = useAuthStore()
 const user = computed(() => auth.user)
+const router = useRouter()
+
+async function handleLogout() {
+  await auth.logout()
+  await router.push('/login')
+}
+
+async function goToMain() {
+  await router.push('/main')
+}
 </script>
 
 <style scoped>
