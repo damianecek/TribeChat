@@ -1,23 +1,26 @@
 <template>
   <div class="channel-menu-root column fit">
-    <!-- Toolbar -->
 
     <!-- Channel List -->
     <q-list class="channel-list col q-pa-md">
       <q-card
-        class="q-card--bordered q-card--flat column no-shadow fit"
-        :dark="$q.dark.isActive"
+      class="q-card--bordered q-card--flat column no-shadow fit"
+      :dark="$q.dark.isActive"
       >
-        <q-toolbar class="q-pa-sm col-auto">
-          <q-toolbar-title>Channels</q-toolbar-title>
-        </q-toolbar>
+      <!-- Toolbar -->
+        <div class="q-pa-sm col-auto">
+          <div class="text-subtitle5">Channels</div>
+        </div>
+
+        <q-separator style="width: 95%; margin: 0 auto;" />
 
         <q-scroll-area class="col fit">
-          <q-infinite-scroll reverse>
+          <q-infinite-scroll class="channel-menu-element">
             <q-item
             v-for="channel in channels"
             :key="channel.id"
             clickable
+            class="channel-menu-element"
             @click="openChannel(channel)"
             >
               <q-item-section class="col">{{ channel.name }}</q-item-section>
@@ -31,10 +34,10 @@
     <div class="q-px-md q-pb-md q-mt-auto">
       <template v-if="isLoggedIn">
         <q-card
-          class="q-card--bordered q-card--flat no-shadow column"
+          class="channel-menu-element q-card--bordered q-card--flat no-shadow column"
           :dark="$q.dark.isActive"
         >
-          <q-item clickable @click="goProfile">
+          <q-item clickable class="channel-menu-element" @click="goProfile">
             <q-item-section avatar>
               <q-avatar icon="account_circle" color="primary" text-color="white" />
             </q-item-section>
@@ -122,5 +125,33 @@ vueOnMounted(() => {
 .channel-menu-root {
   height: 100%;
 }
+
+.channel-menu-element {
+  /* default color for everything inside */
+  color: var(--menu-text-color);
+  transition: color 0.4s ease;
+}
+
+/* make hover items white */
+.channel-menu-element *:hover {
+  color: var(--menu-hover-color);
+}
+
+/* Light mode overrides */
+body.body--light .channel-menu-element {
+  --menu-text-color: #555;       /* grey text in light mode */
+  --menu-hover-color: var(--q-primary);      /* black on hover */
+}
+
+/* Dark mode overrides */
+body.body--dark .channel-menu-element {
+  --menu-text-color: #aaa;       /* soft grey text in dark mode */
+  --menu-hover-color: var(--q-secondary);      /* white on hover */
+}
+
+.header-gradient {
+  background: linear-gradient(135deg, var(--q-warning), var(--q-primary));
+}
+
 
 </style>

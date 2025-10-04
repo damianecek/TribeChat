@@ -47,8 +47,7 @@
       v-for="tab in tabs"
       :key="tab.id"
       :name="tab.id"
-      class="column"
-      style="height: 80vh;"
+      class="column absolute-full"
     >
       <!-- New component -->
 
