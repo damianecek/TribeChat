@@ -7,7 +7,7 @@
 
     <!-- Member List -->
     <q-scroll-area class="col fit">
-      <q-list separator>
+      <q-list>
         <q-item
           v-for="member in members"
           :key="member.id"
@@ -47,13 +47,4 @@ async function openProfile(member: Member) {
 }
 </script>
 
-<style scoped>
-.member-drawer-root {
-  height: 100%;
-  background-color: var(--q-color-dark-page);
-}
 
-.header-gradient {
-  background: linear-gradient(135deg, #232526, #414345);
-}
-</style>

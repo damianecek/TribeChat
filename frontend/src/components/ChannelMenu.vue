@@ -123,6 +123,7 @@ vueOnMounted(() => {
 
 <style scoped>
 .channel-menu-root {
+  background: transparent;
   height: 100%;
 }
 
@@ -149,9 +150,6 @@ body.body--dark .channel-menu-element {
   --menu-hover-color: var(--q-secondary);      /* white on hover */
 }
 
-.header-gradient {
-  background: linear-gradient(135deg, var(--q-warning), var(--q-primary));
-}
 
 
 </style>

@@ -41,7 +41,7 @@
     :model-value="activeTab"
     @update:model-value="$emit('update:activeTab', $event)"
     animated
-    class="col"
+    class="tab-root col"
   >
     <q-tab-panel
       v-for="tab in tabs"
@@ -77,4 +77,11 @@ defineEmits<{
 
 </script>
 
+<style scoped>
+
+body.body--dark .tab-root{
+  background-color: var(--q-dark-page);
+}
+
+</style>
 

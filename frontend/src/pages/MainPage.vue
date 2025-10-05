@@ -47,4 +47,7 @@ function handleAddTab() {
 .main-page-root {
   height : 100%;
 }
+body.body--dark .main-page-root .q-card {
+  background-color: var(--q-dark-page);
+}
 </style>
