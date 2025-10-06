@@ -3,8 +3,8 @@
   <div class="col-shrink q-px-md q-mt-auto">
     <q-input
       v-model="text"
-      filled
       autogrow
+      placeholder="Type a command..."
     />
   </div>
 </template>

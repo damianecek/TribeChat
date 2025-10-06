@@ -1,40 +1,61 @@
 <template>
-  <!-- Tab Bar -->
-  <q-tabs
-    :model-value="activeTab"
-    @update:model-value="$emit('update:activeTab', $event)"
-    shrink
-    stretch
-    inline-label
-    align="left"
-    class="col-shrink"
-  >
-    <q-tab
-      v-for="tab in tabs"
-      :key="tab.id"
-      :name="tab.id"
-      :label="tab.label"
-    >
-      <q-btn
-        flat
-        dense
-        round
-        size="sm"
-        icon="close"
-        @click.stop="$emit('close-tab', tab.id)"
-      />
-    </q-tab>
+  <q-toolbar class="bg-dark text-white">
 
-    <!-- Add New Tab Button -->
+    <q-btn dense flat round icon="menu" @click="ui.toggleLeftDrawer" />
+    <div class=" col">
+
+      <q-tabs
+        :model-value="activeTab"
+        @update:model-value="$emit('update:activeTab', $event)"
+        shrink
+        stretch
+        inline-label
+        align="left"
+        class="col-shrink"
+      >
+        <q-tab
+          v-for="tab in tabs"
+          :key="tab.id"
+          :name="tab.id"
+          :label="tab.label"
+        >
+          <q-btn
+            flat
+            dense
+            round
+            size="sm"
+            icon="close"
+            @click.stop="$emit('close-tab', tab.id)"
+          />
+        </q-tab>
+      </q-tabs>
+    </div>
+
+
+    <!-- Dark / Light mode -->
     <q-btn
+      dense
       flat
+      round
+      :icon="isDark ? 'dark_mode' : 'light_mode'"
+      @click="toggleDark"
+      :color="isDark ? 'secondary' : 'grey-8'"
+      class="q-mr-sm"
+    />
+
+    <!-- Toggle Members Drawer -->
+    <q-btn
       dense
       round
-      size="sm"
-      icon="add"
-      @click="$emit('add-tab')"
-    />
-  </q-tabs>
+      flat
+      icon="group"
+      class="q-ml-sm"
+      @click="ui.toggleRightDrawer"
+        />
+  </q-toolbar>
+  <!-- Tab Bar -->
+
+
 
   <!-- Tab Content Panels -->
   <q-tab-panels
@@ -59,9 +80,16 @@
 
 <script setup lang="ts">
 
+import { computed } from 'vue'
+import {Dark} from 'quasar'
 import type { Tab } from 'src/types'
-
+import { useUiStore } from 'src/stores/ui'
 import MessageList from 'components/MessageList.vue'
+
+const ui = useUiStore()
+
+const isDark = computed(() => Dark.isActive)
+const toggleDark = () => Dark.set(!Dark.isActive)
 
 defineProps<{
   tabs: Tab[]
