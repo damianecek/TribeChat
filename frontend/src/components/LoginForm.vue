@@ -14,37 +14,37 @@
       </q-banner>
 
       <q-form @submit.prevent="onSubmit" class="q-gutter-md">
-  <q-input
-    v-model="uid"
-    label="email/nickname"
-    outlined
-    dense
-    :disable="loading"
-    :rules="[val => !!val || 'necesarry field!']"
-  />
+        <q-input
+          v-model="uid"
+          label="email/nickname"
+          outlined
+          dense
+          :disable="loading"
+          :rules="[val => !!val || 'necesarry field!']"
+        />
 
-  <q-input
-    v-model="password"
-    label="passwrd"
-    type="password"
-    outlined
-    dense
-    :disable="loading"
-    :rules="[val => !!val || 'necesarry field!']"
-  />
+        <q-input
+          v-model="password"
+          label="passwrd"
+          type="password"
+          outlined
+          dense
+          :disable="loading"
+          :rules="[val => !!val || 'necesarry field!']"
+        />
 
-  <div class="row justify-center">
-    <q-btn
-      label="log in"
-      type="submit"
-      color="primary"
-      unelevated
-      size="m"
-      class="q-mt-sm full-width"
-      :loading="loading"
-    />
-  </div>
-</q-form>
+        <div class="row justify-center">
+          <q-btn
+            label="log in"
+            type="submit"
+            color="primary"
+            unelevated
+            size="m"
+            class="q-mt-sm full-width"
+            :loading="loading"
+          />
+        </div>
+      </q-form>
 
     </q-card-section>
 

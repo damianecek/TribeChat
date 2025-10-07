@@ -2,7 +2,7 @@
   <div class="member-drawer-root column fit">
     <!-- Header -->
     <div class="col-auto text-subtitle5 q-pa-md">
-          Members ({{members.length }})
+      Members ({{ members.length }})
     </div>
 
     <!-- Member List -->
@@ -46,5 +46,4 @@ async function openProfile(member: Member) {
   await router.push(`/profile/${member.id}`)
 }
 </script>
-
 

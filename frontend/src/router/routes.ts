@@ -1,6 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router'
+import AppLayout from 'layouts/AppLayout.vue'
 import MainLayout from 'layouts/MainLayout.vue'
-import AppLayout from 'src/layouts/AppLayout.vue'
 import IndexPage from 'pages/IndexPage.vue'
 import LoginPage from 'pages/LoginPage.vue'
 import RegisterPage from 'pages/RegisterPage.vue'
@@ -13,10 +13,10 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     component: MainLayout,
     children: [
-      { path: '', component: IndexPage},
+      { path: '', component: IndexPage },
       { path: 'login', component: LoginPage },
       { path: 'register', component: RegisterPage },
-      { path: 'profile', component: ProfilePage, meta: { requiresAuth: true }},
+      { path: 'profile', component: ProfilePage, meta: { requiresAuth: true } },
     ],
   },
   {

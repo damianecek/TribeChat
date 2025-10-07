@@ -12,21 +12,20 @@
         @add-tab="handleAddTab"
       />
 
-      <ComandInputPanel />
+      <CommandInputPanel />
     </q-card>
   </q-page>
 </template>
 
 <script setup lang="ts">
-// filepath: /home/namelessnovice/Desktop/VPWA/TribeChat/frontend/src/pages/MainPage.vue
 import { useTabsStore } from 'stores/tabs'
 import ChannelTabs from 'components/ChannelTabs.vue'
-import ComandInputPanel from 'src/components/ComandInputPanel.vue'
+import CommandInputPanel from 'components/CommandInputPanel.vue'
 
 const tabsStore = useTabsStore()
 
 function handleUpdateActiveTab(val: string | number) {
-  tabsStore.activeTab = val
+  tabsStore.setActiveTab(val)
 }
 
 function handleCloseTab(id: string) {
@@ -45,7 +44,7 @@ function handleAddTab() {
 
 <style>
 .main-page-root {
-  height : 100%;
+  height: 100%;
 }
 body.body--dark .main-page-root .q-card {
   background-color: var(--q-dark-page);

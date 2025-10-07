@@ -14,24 +14,61 @@
       </q-banner>
 
       <q-form @submit.prevent="onSubmit" class="q-gutter-md">
-  <q-input v-model="firstName" label="name" outlined dense :disable="loading" :rules="[val => !!val || 'Pole je povinné']" />
-  <q-input v-model="lastName" label="lastname" outlined dense :disable="loading" :rules="[val => !!val || 'Pole je povinné']" />
-  <q-input v-model="nickname" label="nickname" outlined dense :disable="loading" :rules="[val => !!val || 'Pole je povinné']" />
-  <q-input v-model="email" label="email" type="email" outlined dense :disable="loading" :rules="[val => !!val || 'Pole je povinné']" />
-  <q-input v-model="password" label="passwrd" type="password" outlined dense :disable="loading" :rules="[val => !!val || 'Pole je povinné']" />
+        <q-input
+          v-model="firstName"
+          label="name"
+          outlined
+          dense
+          :disable="loading"
+          :rules="[val => !!val || 'Pole je povinné']"
+        />
+        <q-input
+          v-model="lastName"
+          label="lastname"
+          outlined
+          dense
+          :disable="loading"
+          :rules="[val => !!val || 'Pole je povinné']"
+        />
+        <q-input
+          v-model="nickname"
+          label="nickname"
+          outlined
+          dense
+          :disable="loading"
+          :rules="[val => !!val || 'Pole je povinné']"
+        />
+        <q-input
+          v-model="email"
+          label="email"
+          type="email"
+          outlined
+          dense
+          :disable="loading"
+          :rules="[val => !!val || 'Pole je povinné']"
+        />
+        <q-input
+          v-model="password"
+          label="passwrd"
+          type="password"
+          outlined
+          dense
+          :disable="loading"
+          :rules="[val => !!val || 'Pole je povinné']"
+        />
 
-  <div class="row justify-center">
-    <q-btn
-      label="register"
-      type="submit"
-      color="primary"
-      unelevated
-      size="m"
-      class="q-mt-sm full-width"
-      :loading="loading"
-    />
-  </div>
-</q-form>
+        <div class="row justify-center">
+          <q-btn
+            label="register"
+            type="submit"
+            color="primary"
+            unelevated
+            size="m"
+            class="q-mt-sm full-width"
+            :loading="loading"
+          />
+        </div>
+      </q-form>
 
     </q-card-section>
 
@@ -48,7 +85,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from 'boot/axios'
-import type { AuthResponse } from '../types/auth'
+import type { AuthResponse } from 'src/types/auth'
 
 
 const firstName = ref('')

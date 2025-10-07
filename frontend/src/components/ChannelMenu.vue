@@ -13,8 +13,12 @@
         <q-separator style="width: 95%; margin: 0 auto;" />
 
         <q-scroll-area class="col fit">
-          <q-infinite-scroll class="channel-menu-element">
-            <q-item v-for="channel in channels" :key="channel.id" clickable class="channel-menu-element items-center"
+          <q-infinite-scroll class="channel-menu-element" @load="handleScrollLoad">
+            <q-item
+              v-for="channel in channels"
+              :key="channel.id"
+              clickable
+              class="channel-menu-element items-center"
               @click="openChannel(channel)">
               <!-- Channel name -->
               <q-item-section>{{ channel.name }}</q-item-section>
@@ -97,12 +101,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted as vueOnMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from 'stores/auth'
-import { useTabsStore } from 'stores/tabs'
-import { useChannelsStore } from 'stores/channels'
+import { computed, onMounted, ref } from 'vue'
 import type { Channel } from 'src/types'
+import { useAuthStore } from 'stores/auth'
+import { useChannelsStore } from 'stores/channels'
+import { useTabsStore } from 'stores/tabs'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -126,7 +130,7 @@ const goProfile = async () => {
 function openChannel(channel: Channel) {
   const existing = tabsStore.tabs.find(t => t.label === channel.name)
   if (existing) {
-    tabsStore.activeTab = existing.id
+    tabsStore.setActiveTab(existing.id)
   } else {
     const newId = String(Date.now())
     tabsStore.addTab({ id: newId, label: channel.name, content: `Welcome to #${channel.name}!` })
@@ -163,8 +167,12 @@ function deleteChannel(channel: Channel) {
   channelsStore.deleteChannel(channel.id)
 }
 
+function handleScrollLoad(_index: number, done: () => void) {
+  done()
+}
+
 // Example: Load channels on mount (replace with API call if needed)
-vueOnMounted(() => {
+onMounted(() => {
   if (channelsStore.channels.length === 0) {
     channelsStore.setChannels([
       { id: '1', name: '🌐 general' },
