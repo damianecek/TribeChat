@@ -15,8 +15,4 @@
   min-height: 100vh;
 }
 
-.bg-gradient {
-  background: linear-gradient(135deg, #0f172a, #1e293b 55%, #334155);
-  padding: 32px 16px;
-}
 </style>
