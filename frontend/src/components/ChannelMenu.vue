@@ -19,14 +19,16 @@
               :key="channel.id"
               clickable
               class="channel-menu-element items-center"
-              @click="openChannel(channel)">
+              :class="{ 'channel-highlight': highlightedChannels.includes(channel.id) }"
+              @click="openChannel(channel)"
+            >
               <!-- Channel name -->
               <q-item-section>{{ channel.name }}</q-item-section>
 
               <!-- Menu (3 dots) -->
               <q-item-section side>
                 <q-btn dense flat round icon="more_vert" @click.stop>
-                  <q-menu auto-close>
+                  <q-menu auto-close class="no-shadow">
                     <q-list style="min-width: 120px">
                       <q-item clickable v-close-popup @click="openEditDialog(channel)">
                         <q-item-section>Edit</q-item-section>
@@ -171,6 +173,8 @@ function handleScrollLoad(_index: number, done: () => void) {
   done()
 }
 
+const highlightedChannels = ref<string[]>([])
+
 // Example: Load channels on mount (replace with API call if needed)
 onMounted(() => {
   if (channelsStore.channels.length === 0) {
@@ -207,6 +211,12 @@ onMounted(() => {
       { id: '30', name: '🔥 trending' }
     ])
   }
+
+  const all = channelsStore.channels.map(c => c.id)
+  const count = Math.min(5, all.length)
+  highlightedChannels.value = all
+    .sort(() => 0.5 - Math.random()) // shuffle
+    .slice(0, count)
 })
 </script>
 
@@ -241,5 +251,37 @@ body.body--dark .channel-menu-element {
   /* soft grey text in dark mode */
   --menu-hover-color: var(--q-secondary);
   /* white on hover */
+}
+
+.channel-highlight {
+  background-color: rgba(var(--highlight-color), 0.08);
+  border-radius: 8px;
+}
+
+.channel-highlight::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--highlight-color);
+  box-shadow: 0 0 6px var(--highlight-color);
+}
+
+/* optional: glowing text or background */
+body.body--dark .channel-highlight {
+  color: var(--q-secondary);
+  text-shadow: 0 0 6px var(--q-secondary);
+  --highlight-color: var(--q-secondary);
+}
+
+/* optional: glowing text or background */
+body.body--light .channel-highlight {
+  color: var(--q-primary);
+  text-shadow: 0 0 6px var(--q-primary);
+  --highlight-color: var(--q-primary);
 }
 </style>
