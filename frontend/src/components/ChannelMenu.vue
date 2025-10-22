@@ -53,7 +53,13 @@
         <q-card class="channel-menu-element q-card--bordered q-card--flat no-shadow column" :dark="$q.dark.isActive">
           <q-item clickable class="channel-menu-element" @click="goProfile">
             <q-item-section avatar>
-              <q-avatar icon="account_circle" color="primary" text-color="white" />
+              <q-avatar 
+              class="status-avatar" 
+              icon="account_circle" 
+              color="primary" 
+              text-color="white" 
+              :style="{ '--status-color': getStatusColor() }"
+              />
             </q-item-section>
             <q-item-section>
               <span>{{ user?.nickname || 'User' }}</span>
@@ -137,6 +143,9 @@ function openChannel(channel: Channel) {
     const newId = String(Date.now())
     tabsStore.addTab({ id: newId, label: channel.name, content: `Welcome to #${channel.name}!` })
   }
+}
+function getStatusColor(): string {
+  return 'limegreen' // Assuming user is always online for this example
 }
 
 function addChannel() {
@@ -222,7 +231,6 @@ onMounted(() => {
 
 <style scoped>
 .channel-menu-root {
-  background: transparent;
   height: 100%;
 }
 
@@ -255,13 +263,12 @@ body.body--dark .channel-menu-element {
 
 .channel-highlight {
   background-color: rgba(var(--highlight-color), 0.08);
-  border-radius: 8px;
 }
 
 .channel-highlight::before {
   content: "";
   position: absolute;
-  left: 6px;
+  left: -3px;
   top: 50%;
   transform: translateY(-50%);
   width: 6px;
@@ -283,5 +290,32 @@ body.body--light .channel-highlight {
   color: var(--q-primary);
   text-shadow: 0 0 6px var(--q-primary);
   --highlight-color: var(--q-primary);
+}
+
+.status-avatar {
+  position: relative;
+  border-radius: 50%;
+  overflow: visible; /* ensure the outline isn’t clipped */
+}
+
+/* Outer outline ring */
+.status-avatar::after {
+  content: "";
+  position: absolute;
+  inset: -2px; /* size of gap + ring thickness */
+  border-radius: 50%;
+  border: 2px solid var(--status-color, transparent);
+  box-sizing: border-box;
+  box-shadow: 0 0 6px var(--status-color);
+  pointer-events: none; /* so clicks still hit the avatar */
+
+  transition:
+    inset 0.25s ease,
+    box-shadow 0.4s ease;
+}
+
+.channel-menu-element .q-item:hover .status-avatar::after {
+  inset: -1px;
+  box-shadow: 0 0 12px var(--status-color);
 }
 </style>

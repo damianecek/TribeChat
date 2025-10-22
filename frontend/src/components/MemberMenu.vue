@@ -65,6 +65,10 @@ async function openProfile(member: Member) {
 </script>
 
 <style scoped>
+.body--light .member-drawer-root {
+  background-color: #f5f5f5;
+}
+
 .member-list .q-item {
   color: var(--menu-text-color);
   transition: color 0.2s, background-color 0.2s;
@@ -84,11 +88,21 @@ async function openProfile(member: Member) {
 .status-avatar::after {
   content: "";
   position: absolute;
-  inset: -3px; /* size of gap + ring thickness */
+  inset: -2px; /* size of gap + ring thickness */
   border-radius: 50%;
   border: 2px solid var(--status-color, transparent);
   box-sizing: border-box;
+  box-shadow: 0 0 6px var(--status-color);
   pointer-events: none; /* so clicks still hit the avatar */
+
+  transition:
+    inset 0.25s ease,
+    box-shadow 0.4s ease;
+}
+
+.member-list .q-item:hover .status-avatar::after {
+  inset: -1px;
+  box-shadow: 0 0 32px var(--status-color);
 }
 
 

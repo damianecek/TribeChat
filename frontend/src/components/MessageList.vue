@@ -9,7 +9,7 @@
 
       <div class="q-pa-md column">
         <q-chat-message v-for="(msg, index) in messages" :key="index" :name="msg.name" :text="[msg.text]"
-          :sent="msg.sent" :stamp="msg.time" :avatar="msg.avatar" />
+          :sent="msg.sent" :stamp="msg.time" :avatar="msg.avatar" :bg-color="messageColor(msg.sent)"/>
       </div>
     </q-infinite-scroll>
   </q-scroll-area>
@@ -69,6 +69,10 @@ const onLoad = (index: number, done: () => void) => {
     })
     done()
   }, 1500)
+}
+
+function messageColor(sent: boolean): string {
+  return sent ? 'grey-3' : 'amber-3'
 }
 
 function addMessage(m: ChatMessage) {

@@ -18,17 +18,20 @@ body{
 
 :root {
   --page-bg: $light-page;
-  --bg-transparent: rgba(255, 255, 255, 0.8);
 }
 
 body.body--dark {
   --page-bg: $dark-page;
-  --bg-transparent: rgba(30, 30, 30, 0.8);
 }
 
-.q-dark .q-card {
+body.body--dark .q-card {
   background-color: $dark-page; // Dark mode color
 }
+
+body.body--light .q-card {
+  background-color: $light-page; // Dark mode color
+}
+
 
 .q-card {
   border: 1px solid #6154623c;
