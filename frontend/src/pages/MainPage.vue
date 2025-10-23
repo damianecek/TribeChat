@@ -24,7 +24,7 @@ import CommandInputPanel from 'components/CommandInputPanel.vue'
 
 const tabsStore = useTabsStore()
 
-function handleUpdateActiveTab(val: string | number) {
+function handleUpdateActiveTab(val: string) {
   tabsStore.setActiveTab(val)
 }
 

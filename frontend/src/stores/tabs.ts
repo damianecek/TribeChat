@@ -4,7 +4,7 @@ import type { Tab } from 'src/types'
 
 export const useTabsStore = defineStore('tabs', () => {
   const tabs = ref<Tab[]>([])
-  const activeTab = ref<string | number>('')
+  const activeTab = ref<string>('')
 
   function addTab(tab: Tab) {
     tabs.value.push(tab)
@@ -27,7 +27,7 @@ export const useTabsStore = defineStore('tabs', () => {
     }
   }
 
-  function setActiveTab(id: string | number) {
+  function setActiveTab(id: string) {
     activeTab.value = id
   }
 

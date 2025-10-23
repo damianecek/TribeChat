@@ -40,7 +40,7 @@
 
   <q-tab-panels
     :model-value="activeTab"
-    @update:model-value="$emit('update:activeTab', $event)"
+    @update:model-value="$emit('update:activeTab', String($event))"
     animated
     class="tab-root col"
   >
@@ -64,11 +64,11 @@ const toggleDark = () => Dark.set(!Dark.isActive)
 
 defineProps<{
   tabs: Tab[]
-  activeTab: string | number
+  activeTab: string
 }>()
 
 defineEmits<{
-  (e: 'update:activeTab', val: string | number): void
+  (e: 'update:activeTab', val: string): void
   (e: 'close-tab', id: string): void
   (e: 'add-tab'): void
 }>()
