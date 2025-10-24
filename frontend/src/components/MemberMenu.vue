@@ -53,7 +53,7 @@ function getStatusColor(status: string): string {
   switch (status.toLowerCase()) {
     case 'online': return 'limegreen'
     case 'away': return 'gold'
-    case 'busy': return 'orangered'
+    case 'dnd': return 'orangered'
     case 'offline': return 'gray'
     default: return 'lightgray'
   }

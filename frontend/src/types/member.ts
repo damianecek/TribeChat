@@ -1,4 +1,4 @@
-export type MemberStatus = 'Online' | 'Away' | 'Offline'
+export type MemberStatus = 'Online' | 'Away' | 'Offline' | 'DND'
 
 export interface Member {
   id: string | number

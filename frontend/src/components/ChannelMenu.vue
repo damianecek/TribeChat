@@ -50,19 +50,46 @@
     <!-- Profile Box at Bottom -->
     <div class="q-px-md q-pb-md q-mt-auto">
       <template v-if="isLoggedIn">
-        <q-card class="channel-menu-element q-card--bordered q-card--flat no-shadow column" :dark="$q.dark.isActive">
+        <q-card
+          class="channel-menu-element q-card--bordered q-card--flat no-shadow column"
+          :dark="$q.dark.isActive"
+        >
           <q-item clickable class="channel-menu-element" @click="goProfile">
             <q-item-section avatar>
-              <q-avatar 
-              class="status-avatar" 
-              icon="account_circle" 
-              color="primary" 
-              text-color="white" 
-              :style="{ '--status-color': getStatusColor() }"
+              <q-avatar
+                class="status-avatar"
+                icon="account_circle"
+                color="primary"
+                text-color="white"
+                :style="{ '--status-color': getStatusColor(status) }"
               />
             </q-item-section>
+
             <q-item-section>
               <span>{{ user?.nickname || 'User' }}</span>
+              <div class="text-caption text-grey">{{ status }}</div>
+            </q-item-section>
+
+            <!-- Arrow Button for Status -->
+            <q-item-section side>
+              <q-btn dense flat round icon="expand_more" @click.stop>
+                <q-menu auto-close class="no-shadow">
+                  <q-list>
+                    <q-item
+                      v-for="s in statusOptions"
+                      :key="s"
+                      clickable
+                      v-close-popup
+                      @click="status = s"
+                    >
+                      <q-item-section avatar>
+                        <q-icon name="circle" :style="{'color': getStatusColor(s)}" size="14px" />
+                      </q-item-section>
+                      <q-item-section>{{ s }}</q-item-section>
+                    </q-item>
+                  </q-list>
+                </q-menu>
+              </q-btn>
             </q-item-section>
           </q-item>
         </q-card>
@@ -115,6 +142,7 @@ import type { Channel } from 'src/types'
 import { useAuthStore } from 'stores/auth'
 import { useChannelsStore } from 'stores/channels'
 import { useTabsStore } from 'stores/tabs'
+import type { MemberStatus } from 'src/types'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -130,6 +158,9 @@ const showEditDialog = ref(false)
 const newChannelName = ref('')
 const editChannelName = ref('')
 const channelBeingEdited = ref<Channel | null>(null)
+const status = ref<MemberStatus>('Online')
+
+const statusOptions: MemberStatus[] = ['Online', 'Away', 'Offline', "DND"]
 
 const goProfile = async () => {
   await router.push('/profile')
@@ -144,8 +175,14 @@ function openChannel(channel: Channel) {
     tabsStore.addTab({ id: newId, label: channel.name, content: `Welcome to #${channel.name}!` })
   }
 }
-function getStatusColor(): string {
-  return 'limegreen' // Assuming user is always online for this example
+function getStatusColor(status: string): string {
+  switch (status.toLowerCase()) {
+    case 'online': return 'limegreen'
+    case 'away': return 'gold'
+    case 'dnd': return 'orangered'
+    case 'offline': return 'gray'
+    default: return 'lightgray'
+  }
 }
 
 function addChannel() {
@@ -318,4 +355,6 @@ body.body--light .channel-highlight {
   inset: -1px;
   box-shadow: 0 0 12px var(--status-color);
 }
+
+
 </style>

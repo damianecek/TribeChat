@@ -1,11 +1,24 @@
 <template>
   <div class="row items-center q-px-md q-mt-auto">
     <div class="col">
-      <q-input v-model="text" autogrow placeholder="Type a command..." filled dense
-        @keydown.enter.prevent="handleEnter" />
-    </div>
-    <div class="col-shrink">
-      <q-btn @click="sendMessage" class="q-ml-sm q-mr-lg" round dense flat icon="send" />
+      <q-input 
+      v-model="text" 
+      autogrow 
+      placeholder="Type a command..." 
+      filled 
+      dense
+      @keydown.enter.prevent="handleEnter"
+      >
+        <template v-slot:append>
+          <q-btn
+            @click="sendMessage"
+            round
+            dense
+            flat
+            icon="send"
+          />
+        </template>
+      </q-input>
     </div>
   </div>
 </template>
