@@ -14,16 +14,15 @@
 
         <q-scroll-area class="col fit">
           <q-infinite-scroll class="channel-menu-element" @load="handleScrollLoad">
-            <q-item
-              v-for="channel in channels"
-              :key="channel.id"
-              clickable
-              class="channel-menu-element items-center"
-              :class="{ 'channel-highlight': highlightedChannels.includes(channel.id) }"
-              @click="openChannel(channel)"
-            >
+            <q-item v-for="channel in channels" :key="channel.id" clickable class="channel-menu-element items-center"
+              :class="{ 'channel-highlight': highlightedChannels.includes(channel.id) }" @click="openChannel(channel)">
               <!-- Channel name -->
-              <q-item-section>{{ channel.name }}</q-item-section>
+              <q-item-section>
+                <div class="row items-center no-wrap">
+                  <span>{{ channel.name }}</span>
+                  <q-icon v-if="channel.is_public" name="lock" size="16px" class="q-ml-sm text-grey" />
+                </div>
+              </q-item-section>
 
               <!-- Menu (3 dots) -->
               <q-item-section side>
@@ -50,19 +49,11 @@
     <!-- Profile Box at Bottom -->
     <div class="q-px-md q-pb-md q-mt-auto">
       <template v-if="isLoggedIn">
-        <q-card
-          class="channel-menu-element q-card--bordered q-card--flat no-shadow column"
-          :dark="$q.dark.isActive"
-        >
+        <q-card class="channel-menu-element q-card--bordered q-card--flat no-shadow column" :dark="$q.dark.isActive">
           <q-item clickable class="channel-menu-element" @click="goProfile">
             <q-item-section avatar>
-              <q-avatar
-                class="status-avatar"
-                icon="account_circle"
-                color="primary"
-                text-color="white"
-                :style="{ '--status-color': getStatusColor(status) }"
-              />
+              <q-avatar class="status-avatar" icon="account_circle" color="primary" text-color="white"
+                :style="{ '--status-color': getStatusColor(status) }" />
             </q-item-section>
 
             <q-item-section>
@@ -75,15 +66,9 @@
               <q-btn dense flat round icon="expand_more" @click.stop>
                 <q-menu auto-close class="no-shadow">
                   <q-list>
-                    <q-item
-                      v-for="s in statusOptions"
-                      :key="s"
-                      clickable
-                      v-close-popup
-                      @click="status = s"
-                    >
+                    <q-item v-for="s in statusOptions" :key="s" clickable v-close-popup @click="status = s">
                       <q-item-section avatar>
-                        <q-icon name="circle" :style="{'color': getStatusColor(s)}" size="14px" />
+                        <q-icon name="circle" :style="{ 'color': getStatusColor(s) }" size="14px" />
                       </q-item-section>
                       <q-item-section>{{ s }}</q-item-section>
                     </q-item>
@@ -105,6 +90,7 @@
 
         <q-card-section>
           <q-input v-model="newChannelName" label="Channel name" autofocus />
+          <q-toggle v-model="newIsPublic" label="Private" />
         </q-card-section>
 
         <q-card-actions align="right">
@@ -123,6 +109,7 @@
 
         <q-card-section>
           <q-input v-model="editChannelName" label="New name" autofocus />
+          <q-toggle v-model="editIsPublic" label="Private" />
         </q-card-section>
 
         <q-card-actions align="right">
@@ -157,6 +144,8 @@ const showAddDialog = ref(false)
 const showEditDialog = ref(false)
 const newChannelName = ref('')
 const editChannelName = ref('')
+const newIsPublic = ref(false)
+const editIsPublic = ref(false)
 const channelBeingEdited = ref<Channel | null>(null)
 const status = ref<MemberStatus>('Online')
 
@@ -187,10 +176,11 @@ function getStatusColor(status: string): string {
 
 function addChannel() {
   const name = newChannelName.value.trim()
+  const is_public = newIsPublic.value
   if (!name) return
 
   const newId = String(Date.now())
-  channelsStore.addChannel({ id: newId, name })
+  channelsStore.addChannel({ id: newId, name, is_public })
 
   newChannelName.value = ''
   showAddDialog.value = false
@@ -205,9 +195,10 @@ function openEditDialog(channel: Channel) {
 function saveEdit() {
   if (!channelBeingEdited.value) return
   const updatedName = editChannelName.value.trim()
+  const updatedIsPublic = editIsPublic.value
   if (!updatedName) return
 
-  channelsStore.updateChannel(channelBeingEdited.value.id, updatedName)
+  channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, updatedIsPublic)
   showEditDialog.value = false
 }
 
@@ -225,36 +216,36 @@ const highlightedChannels = ref<string[]>([])
 onMounted(() => {
   if (channelsStore.channels.length === 0) {
     channelsStore.setChannels([
-      { id: '1', name: '🌐 general' },
-      { id: '2', name: '💬 chit-chat' },
-      { id: '3', name: '🆘 help-desk' },
-      { id: '4', name: '📢 announcements' },
-      { id: '5', name: '🎮 gaming' },
-      { id: '6', name: '💻 dev-talk' },
-      { id: '7', name: '🎨 art-share' },
-      { id: '8', name: '🎶 music' },
-      { id: '9', name: '📚 knowledge-base' },
-      { id: '10', name: '🍿 movies-tv' },
-      { id: '11', name: '📷 photography' },
-      { id: '12', name: '🍔 foodies' },
-      { id: '13', name: '🌍 world-news' },
-      { id: '14', name: '⚽ sports' },
-      { id: '15', name: '📈 crypto-stocks' },
-      { id: '16', name: '🎭 memes' },
-      { id: '17', name: '🤖 ai-bots' },
-      { id: '18', name: '📖 book-club' },
-      { id: '19', name: '✈️ travel' },
-      { id: '20', name: '🚀 tech-trends' },
-      { id: '21', name: '🎤 voice-hangout' },
-      { id: '22', name: '🔒 private-chat' },
-      { id: '23', name: '⚙️ project-lab' },
-      { id: '24', name: '📝 feedback' },
-      { id: '25', name: '🎉 events' },
-      { id: '26', name: '🐾 pets' },
-      { id: '27', name: '🛠️ coding-help' },
-      { id: '28', name: '💡 ideas' },
-      { id: '29', name: '🌌 sci-fi' },
-      { id: '30', name: '🔥 trending' }
+      { id: '1', name: '🌐 general', is_public: true },
+      { id: '2', name: '💬 chit-chat', is_public: true },
+      { id: '3', name: '🆘 help-desk', is_public: true },
+      { id: '4', name: '📢 announcements', is_public: true },
+      { id: '5', name: '🎮 gaming', is_public: true },
+      { id: '6', name: '💻 dev-talk', is_public: true },
+      { id: '7', name: '🎨 art-share', is_public: true },
+      { id: '8', name: '🎶 music', is_public: true },
+      { id: '9', name: '📚 knowledge-base', is_public: true },
+      { id: '10', name: '🍿 movies-tv', is_public: true },
+      { id: '11', name: '📷 photography', is_public: true },
+      { id: '12', name: '🍔 foodies', is_public: true },
+      { id: '13', name: '🌍 world-news', is_public: true },
+      { id: '14', name: '⚽ sports', is_public: true },
+      { id: '15', name: '📈 crypto-stocks', is_public: true },
+      { id: '16', name: '🎭 memes', is_public: true },
+      { id: '17', name: '🤖 ai-bots', is_public: true },
+      { id: '18', name: '📖 book-club', is_public: true },
+      { id: '19', name: '✈️ travel', is_public: true },
+      { id: '20', name: '🚀 tech-trends', is_public: true },
+      { id: '21', name: '🎤 voice-hangout', is_public: true },
+      { id: '22', name: '🔒 private-chat', is_public: true },
+      { id: '23', name: '⚙️ project-lab', is_public: false },
+      { id: '24', name: '📝 feedback', is_public: false },
+      { id: '25', name: '🎉 events', is_public: false },
+      { id: '26', name: '🐾 pets', is_public: false },
+      { id: '27', name: '🛠️ coding-help', is_public: false },
+      { id: '28', name: '💡 ideas', is_public: false },
+      { id: '29', name: '🌌 sci-fi', is_public: false },
+      { id: '30', name: '🔥 trending', is_public: false }
     ])
   }
 
@@ -332,19 +323,22 @@ body.body--light .channel-highlight {
 .status-avatar {
   position: relative;
   border-radius: 50%;
-  overflow: visible; /* ensure the outline isn’t clipped */
+  overflow: visible;
+  /* ensure the outline isn’t clipped */
 }
 
 /* Outer outline ring */
 .status-avatar::after {
   content: "";
   position: absolute;
-  inset: -2px; /* size of gap + ring thickness */
+  inset: -2px;
+  /* size of gap + ring thickness */
   border-radius: 50%;
   border: 2px solid var(--status-color, transparent);
   box-sizing: border-box;
   box-shadow: 0 0 6px var(--status-color);
-  pointer-events: none; /* so clicks still hit the avatar */
+  pointer-events: none;
+  /* so clicks still hit the avatar */
 
   transition:
     inset 0.25s ease,
@@ -355,6 +349,4 @@ body.body--light .channel-highlight {
   inset: -1px;
   box-shadow: 0 0 12px var(--status-color);
 }
-
-
 </style>

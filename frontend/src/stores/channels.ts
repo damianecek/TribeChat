@@ -10,12 +10,15 @@ export const useChannelsStore = defineStore('channels', () => {
   }
 
   function addChannel(channel: Channel) {
-    channels.value.push(channel)
+    channels.value.unshift(channel)
   }
 
-  function updateChannel(id: string, newName: string) {
+  function updateChannel(id: string, newName: string, is_public: boolean) {
     const channel = channels.value.find(item => item.id === id)
-    if (channel) channel.name = newName
+    if (channel){
+      channel.name = newName
+      channel.is_public = is_public
+    }
   }
 
   function deleteChannel(id: string) {
@@ -23,4 +26,4 @@ export const useChannelsStore = defineStore('channels', () => {
   }
 
   return { channels, setChannels, addChannel, deleteChannel, updateChannel }
-}) 
+})
