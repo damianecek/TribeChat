@@ -9,42 +9,89 @@
           <q-btn icon="add" color="primary" flat dense round size="sm" @click="showAddDialog = true" />
         </div>
 
-
         <q-separator style="width: 95%; margin: 0 auto;" />
 
         <q-scroll-area class="col fit">
           <q-infinite-scroll class="channel-menu-element" @load="handleScrollLoad">
-            <q-item v-for="channel in channels" :key="channel.id" clickable class="channel-menu-element items-center"
-              :class="{ 'channel-highlight': highlightedChannels.includes(channel.id) }" @click="openChannel(channel)">
-              <!-- Channel name -->
-              <q-item-section>
-                <div class="row items-center no-wrap">
-                  <span>{{ channel.name }}</span>
-                  <q-icon v-if="channel.is_public" name="lock" size="16px" class="q-ml-sm text-grey" />
-                </div>
-              </q-item-section>
 
-              <!-- Menu (3 dots) -->
-              <q-item-section side>
-                <q-btn dense flat round icon="more_vert" @click.stop>
-                  <q-menu auto-close class="no-shadow">
-                    <q-list style="min-width: 120px">
-                      <q-item clickable v-close-popup @click="openEditDialog(channel)">
-                        <q-item-section>Edit</q-item-section>
-                      </q-item>
-                      <q-item clickable v-close-popup @click="deleteChannel(channel)">
-                        <q-item-section class="text-negative">Delete</q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-menu>
-                </q-btn>
-              </q-item-section>
-            </q-item>
+            <div v-if="myChannels.length" class="q-mt-sm">
+              <div class="text-caption text-grey q-pl-sm q-mb-xs">My Channels</div>
+
+              <q-item v-for="channel in myChannels" :key="channel.id" clickable
+                class="channel-menu-element items-center"
+                :class="{ 'channel-highlight': highlightedChannels.includes(channel.id) }"
+                @click="openChannel(channel)">
+                <q-item-section>
+                  <div class="row items-center no-wrap">
+                    <span>{{ channel.name }}</span>
+                    <q-icon v-if="!channel.is_public" name="lock" size="16px" class="q-ml-sm text-grey" />
+                  </div>
+                </q-item-section>
+
+                <q-item-section side>
+                  <q-btn dense flat round icon="more_vert" @click.stop>
+                    <q-menu auto-close class="no-shadow">
+                      <q-list style="min-width: 120px">
+                        <q-item clickable v-close-popup @click="openEditDialog(channel)">
+                          <q-item-section>Edit</q-item-section>
+                        </q-item>
+
+                        <q-item clickable v-close-popup @click="deleteChannel(channel)">
+                          <q-item-section class="text-warning">Leave</q-item-section>
+                        </q-item>
+
+                        <q-item clickable v-close-popup @click="deleteChannel(channel)">
+                          <q-item-section class="text-negative">Delete</q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-menu>
+                  </q-btn>
+                </q-item-section>
+
+
+
+              </q-item>
+            </div>
+
+            <div v-if="otherChannels.length" class="q-mt-md">
+              <div class="text-caption text-grey q-pl-sm q-mb-xs">Other Channels</div>
+
+              <q-item v-for="channel in otherChannels" :key="channel.id" clickable
+                class="channel-menu-element items-center"
+                :class="{ 'channel-highlight': highlightedChannels.includes(channel.id) }"
+                @click="openChannel(channel)">
+                <q-item-section>
+                  <div class="row items-center no-wrap">
+                    <span>{{ channel.name }}</span>
+                    <q-icon v-if="!channel.is_public" name="lock" size="16px" class="q-ml-sm text-grey" />
+                  </div>
+                </q-item-section>
+
+                <q-item-section side>
+                  <q-btn dense flat round icon="more_vert" @click.stop>
+                    <q-menu auto-close class="no-shadow">
+                      <q-list style="min-width: 120px">
+                        <q-item v-if="channel.user_id" clickable v-close-popup @click="openEditDialog(channel)">
+                          <q-item-section>Edit</q-item-section>
+                        </q-item>
+
+                        <q-item clickable v-close-popup @click="deleteChannel(channel)">
+                          <q-item-section class="text-warning">Leave</q-item-section>
+                        </q-item>
+                      </q-list>
+                    </q-menu>
+                  </q-btn>
+                </q-item-section>
+
+              </q-item>
+            </div>
+
           </q-infinite-scroll>
         </q-scroll-area>
 
       </q-card>
     </q-list>
+
 
     <!-- Profile Box at Bottom -->
     <div class="q-px-md q-pb-md q-mt-auto">
@@ -139,6 +186,8 @@ const channelsStore = useChannelsStore()
 const isLoggedIn = computed(() => auth.isLoggedIn)
 const user = computed(() => auth.user)
 const channels = computed(() => channelsStore.channels)
+const myChannels = computed(() => channels.value.filter(ch => ch.user_id === true))
+const otherChannels = computed(() => channels.value.filter(ch => ch.user_id !== true))
 
 const showAddDialog = ref(false)
 const showEditDialog = ref(false)
@@ -176,11 +225,12 @@ function getStatusColor(status: string): string {
 
 function addChannel() {
   const name = newChannelName.value.trim()
-  const is_public = newIsPublic.value
+  const is_public = !newIsPublic.value
+  const user_id = true
   if (!name) return
 
   const newId = String(Date.now())
-  channelsStore.addChannel({ id: newId, name, is_public })
+  channelsStore.addChannel({ id: newId, name, is_public, user_id })
 
   newChannelName.value = ''
   showAddDialog.value = false
@@ -216,36 +266,36 @@ const highlightedChannels = ref<string[]>([])
 onMounted(() => {
   if (channelsStore.channels.length === 0) {
     channelsStore.setChannels([
-      { id: '1', name: '🌐 general', is_public: true },
-      { id: '2', name: '💬 chit-chat', is_public: true },
-      { id: '3', name: '🆘 help-desk', is_public: true },
-      { id: '4', name: '📢 announcements', is_public: true },
-      { id: '5', name: '🎮 gaming', is_public: true },
-      { id: '6', name: '💻 dev-talk', is_public: true },
-      { id: '7', name: '🎨 art-share', is_public: true },
-      { id: '8', name: '🎶 music', is_public: true },
-      { id: '9', name: '📚 knowledge-base', is_public: true },
-      { id: '10', name: '🍿 movies-tv', is_public: true },
-      { id: '11', name: '📷 photography', is_public: true },
-      { id: '12', name: '🍔 foodies', is_public: true },
-      { id: '13', name: '🌍 world-news', is_public: true },
-      { id: '14', name: '⚽ sports', is_public: true },
-      { id: '15', name: '📈 crypto-stocks', is_public: true },
-      { id: '16', name: '🎭 memes', is_public: true },
-      { id: '17', name: '🤖 ai-bots', is_public: true },
-      { id: '18', name: '📖 book-club', is_public: true },
-      { id: '19', name: '✈️ travel', is_public: true },
-      { id: '20', name: '🚀 tech-trends', is_public: true },
-      { id: '21', name: '🎤 voice-hangout', is_public: true },
-      { id: '22', name: '🔒 private-chat', is_public: true },
-      { id: '23', name: '⚙️ project-lab', is_public: false },
-      { id: '24', name: '📝 feedback', is_public: false },
-      { id: '25', name: '🎉 events', is_public: false },
-      { id: '26', name: '🐾 pets', is_public: false },
-      { id: '27', name: '🛠️ coding-help', is_public: false },
-      { id: '28', name: '💡 ideas', is_public: false },
-      { id: '29', name: '🌌 sci-fi', is_public: false },
-      { id: '30', name: '🔥 trending', is_public: false }
+      { id: '1', name: '🌐 general', is_public: true, user_id: true },
+      { id: '2', name: '💬 chit-chat', is_public: true, user_id: true },
+      { id: '3', name: '🆘 help-desk', is_public: true, user_id: true },
+      { id: '4', name: '📢 announcements', is_public: true, user_id: true },
+      { id: '5', name: '🎮 gaming', is_public: true, user_id: true },
+      { id: '6', name: '💻 dev-talk', is_public: true, user_id: true },
+      { id: '7', name: '🎨 art-share', is_public: true, user_id: true },
+      { id: '8', name: '🎶 music', is_public: true, user_id: true },
+      { id: '9', name: '📚 knowledge-base', is_public: true, user_id: true },
+      { id: '10', name: '🍿 movies-tv', is_public: true, user_id: true },
+      { id: '11', name: '📷 photography', is_public: true, user_id: true },
+      { id: '12', name: '🍔 foodies', is_public: true, user_id: true },
+      { id: '13', name: '🌍 world-news', is_public: true, user_id: true },
+      { id: '14', name: '⚽ sports', is_public: true, user_id: true },
+      { id: '15', name: '📈 crypto-stocks', is_public: true, user_id: true },
+      { id: '16', name: '🎭 memes', is_public: true, user_id: true },
+      { id: '17', name: '🤖 ai-bots', is_public: true, user_id: true },
+      { id: '18', name: '📖 book-club', is_public: true, user_id: true },
+      { id: '19', name: '✈️ travel', is_public: true, user_id: true },
+      { id: '20', name: '🚀 tech-trends', is_public: true, user_id: true },
+      { id: '21', name: '🎤 voice-hangout', is_public: true, user_id: true },
+      { id: '22', name: '🔒 private-chat', is_public: true, user_id: true },
+      { id: '23', name: '⚙️ project-lab', is_public: false, user_id: false },
+      { id: '24', name: '📝 feedback', is_public: false, user_id: false },
+      { id: '25', name: '🎉 events', is_public: false, user_id: false },
+      { id: '26', name: '🐾 pets', is_public: false, user_id: false },
+      { id: '27', name: '🛠️ coding-help', is_public: false, user_id: false },
+      { id: '28', name: '💡 ideas', is_public: false, user_id: false },
+      { id: '29', name: '🌌 sci-fi', is_public: false, user_id: false },
+      { id: '30', name: '🔥 trending', is_public: false, user_id: false }
     ])
   }
 
