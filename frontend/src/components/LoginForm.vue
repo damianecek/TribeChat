@@ -104,7 +104,7 @@ async function onSubmit() {
     api.defaults.headers.common['Authorization'] = `Bearer ${token.token}`
 
     // redirect
-    await router.push('/profile')
+    await router.push('/main')
   } catch (err) {
     console.error(err)
     errorMessage.value = 'Prihlásenie zlyhalo. Skontroluj údaje a skús znova.'

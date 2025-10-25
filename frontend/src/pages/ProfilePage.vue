@@ -53,9 +53,9 @@
     <div class="col">
       <q-btn
         color="primary"
-        label="go to main"
+        label="go to chat"
         @click="goToMain"
-        unelevated
+        flat
         class="full-width"
       />
     </div>

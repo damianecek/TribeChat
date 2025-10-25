@@ -1,4 +1,4 @@
-export interface User_channels{
+export interface UserChannel{
   user_id: number
   channel_id: string
 }

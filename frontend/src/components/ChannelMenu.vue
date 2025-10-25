@@ -25,6 +25,7 @@
                   <div class="row items-center no-wrap">
                     <span>{{ channel.name }}</span>
                     <q-icon v-if="!channel.is_public" name="lock" size="16px" class="q-ml-sm text-grey" />
+                    <q-icon v-if="channel.user_id" name="person" size="16px" class="q-ml-xs text-primary" />
                   </div>
                 </q-item-section>
 
@@ -32,34 +33,28 @@
                   <q-btn dense flat round icon="more_vert" @click.stop>
                     <q-menu auto-close class="no-shadow">
                       <q-list style="min-width: 120px">
-                        <q-item clickable v-close-popup @click="openEditDialog(channel)">
+                        <q-item v-if="channel.user_id" clickable v-close-popup @click="openEditDialog(channel)">
                           <q-item-section>Edit</q-item-section>
                         </q-item>
 
-                        <q-item clickable v-close-popup @click="deleteChannel(channel)">
+                        <q-item clickable v-close-popup @click="leaveChannel(channel)">
                           <q-item-section class="text-warning">Leave</q-item-section>
                         </q-item>
 
-                        <q-item clickable v-close-popup @click="deleteChannel(channel)">
+                        <q-item v-if="channel.user_id" clickable v-close-popup @click="deleteChannel(channel)">
                           <q-item-section class="text-negative">Delete</q-item-section>
                         </q-item>
                       </q-list>
                     </q-menu>
                   </q-btn>
                 </q-item-section>
-
-
-
               </q-item>
             </div>
 
             <div v-if="otherChannels.length" class="q-mt-md">
               <div class="text-caption text-grey q-pl-sm q-mb-xs">Other Channels</div>
 
-              <q-item v-for="channel in otherChannels" :key="channel.id" clickable
-                class="channel-menu-element items-center"
-                :class="{ 'channel-highlight': highlightedChannels.includes(channel.id) }"
-                @click="openChannel(channel)">
+              <q-item v-for="channel in otherChannels" :key="channel.id" class="channel-menu-element items-center">
                 <q-item-section>
                   <div class="row items-center no-wrap">
                     <span>{{ channel.name }}</span>
@@ -75,14 +70,13 @@
                           <q-item-section>Edit</q-item-section>
                         </q-item>
 
-                        <q-item clickable v-close-popup @click="deleteChannel(channel)">
-                          <q-item-section class="text-warning">Leave</q-item-section>
+                        <q-item v-if="channel.is_public" clickable v-close-popup @click="joinChannel(channel)">
+                          <q-item-section class="text-positive">Join</q-item-section>
                         </q-item>
                       </q-list>
                     </q-menu>
                   </q-btn>
                 </q-item-section>
-
               </q-item>
             </div>
 
@@ -176,18 +170,35 @@ import type { Channel } from 'src/types'
 import { useAuthStore } from 'stores/auth'
 import { useChannelsStore } from 'stores/channels'
 import { useTabsStore } from 'stores/tabs'
-import type { MemberStatus } from 'src/types'
+import { useUserChannelsStore } from 'stores/user_channels'
+import type { UserStatus } from 'src/types/user'
 
-const auth = useAuthStore()
 const router = useRouter()
+const auth = useAuthStore()
 const tabsStore = useTabsStore()
 const channelsStore = useChannelsStore()
-
+const userChannelsStore = useUserChannelsStore()
 const isLoggedIn = computed(() => auth.isLoggedIn)
 const user = computed(() => auth.user)
 const channels = computed(() => channelsStore.channels)
-const myChannels = computed(() => channels.value.filter(ch => ch.user_id === true))
-const otherChannels = computed(() => channels.value.filter(ch => ch.user_id !== true))
+
+const myChannels = computed(() => {
+  if (!user.value) return []
+  const userChannelIds = userChannelsStore
+    .userChannels
+    .filter(uc => uc.user_id === user.value!.id)
+    .map(uc => uc.channel_id)
+  return channels.value.filter(ch => userChannelIds.includes(ch.id))
+})
+
+const otherChannels = computed(() => {
+  if (!user.value) return channels.value
+  const userChannelIds = userChannelsStore
+    .userChannels
+    .filter(uc => uc.user_id === user.value!.id)
+    .map(uc => uc.channel_id)
+  return channels.value.filter(ch => !userChannelIds.includes(ch.id))
+})
 
 const showAddDialog = ref(false)
 const showEditDialog = ref(false)
@@ -196,23 +207,73 @@ const editChannelName = ref('')
 const newIsPublic = ref(false)
 const editIsPublic = ref(false)
 const channelBeingEdited = ref<Channel | null>(null)
-const status = ref<MemberStatus>('Online')
+const status = ref<UserStatus>('Online')
 
-const statusOptions: MemberStatus[] = ['Online', 'Away', 'Offline', "DND"]
+const statusOptions: UserStatus[] = ['Online', 'Away', 'Offline', 'DND']
 
 const goProfile = async () => {
   await router.push('/profile')
 }
 
 function openChannel(channel: Channel) {
-  const existing = tabsStore.tabs.find(t => t.label === channel.name)
+  const existing = tabsStore.tabs.find(t => t.id === channel.id)
   if (existing) {
     tabsStore.setActiveTab(existing.id)
   } else {
-    const newId = String(Date.now())
-    tabsStore.addTab({ id: newId, label: channel.name, content: `Welcome to #${channel.name}!` })
+    tabsStore.addTab({
+      id: channel.id,
+      label: channel.name,
+      content: `Welcome to #${channel.name}!`
+    })
+    tabsStore.setActiveTab(channel.id)
   }
 }
+
+function addChannel() {
+  if (!user.value) return
+  const name = newChannelName.value.trim()
+  if (!name) return
+
+  const newId = String(Date.now())
+  const is_public = !newIsPublic.value
+
+  const newChannel: Channel = {
+    id: newId,
+    name,
+    is_public,
+    user_id: true
+  }
+
+  channelsStore.addChannel(newChannel)
+
+  userChannelsStore.addUserToChannel(user.value.id, newId)
+
+  newChannelName.value = ''
+  showAddDialog.value = false
+}
+
+function openEditDialog(channel: Channel) {
+  channelBeingEdited.value = channel
+  editChannelName.value = channel.name
+  editIsPublic.value = !channel.is_public
+  showEditDialog.value = true
+}
+
+function saveEdit() {
+  if (!channelBeingEdited.value) return
+  const updatedName = editChannelName.value.trim()
+  if (!updatedName) return
+
+  channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, !editIsPublic.value)
+  showEditDialog.value = false
+}
+
+function deleteChannel(channel: Channel) {
+  if (!user.value) return
+  userChannelsStore.removeUserFromChannel(user.value.id, channel.id)
+  channelsStore.deleteChannel(channel.id)
+}
+
 function getStatusColor(status: string): string {
   switch (status.toLowerCase()) {
     case 'online': return 'limegreen'
@@ -223,38 +284,16 @@ function getStatusColor(status: string): string {
   }
 }
 
-function addChannel() {
-  const name = newChannelName.value.trim()
-  const is_public = !newIsPublic.value
-  const user_id = true
-  if (!name) return
-
-  const newId = String(Date.now())
-  channelsStore.addChannel({ id: newId, name, is_public, user_id })
-
-  newChannelName.value = ''
-  showAddDialog.value = false
+function joinChannel(channel: Channel) {
+  if (!user.value) return
+  userChannelsStore.addUserToChannel(user.value.id, channel.id)
 }
 
-function openEditDialog(channel: Channel) {
-  channelBeingEdited.value = channel
-  editChannelName.value = channel.name
-  showEditDialog.value = true
+function leaveChannel(channel: Channel) {
+  if (!user.value) return
+  userChannelsStore.removeUserFromChannel(user.value.id, channel.id)
 }
 
-function saveEdit() {
-  if (!channelBeingEdited.value) return
-  const updatedName = editChannelName.value.trim()
-  const updatedIsPublic = editIsPublic.value
-  if (!updatedName) return
-
-  channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, updatedIsPublic)
-  showEditDialog.value = false
-}
-
-function deleteChannel(channel: Channel) {
-  channelsStore.deleteChannel(channel.id)
-}
 
 function handleScrollLoad(_index: number, done: () => void) {
   done()
@@ -262,47 +301,31 @@ function handleScrollLoad(_index: number, done: () => void) {
 
 const highlightedChannels = ref<string[]>([])
 
-// Example: Load channels on mount (replace with API call if needed)
 onMounted(() => {
   if (channelsStore.channels.length === 0) {
     channelsStore.setChannels([
       { id: '1', name: '🌐 general', is_public: true, user_id: true },
-      { id: '2', name: '💬 chit-chat', is_public: true, user_id: true },
-      { id: '3', name: '🆘 help-desk', is_public: true, user_id: true },
-      { id: '4', name: '📢 announcements', is_public: true, user_id: true },
-      { id: '5', name: '🎮 gaming', is_public: true, user_id: true },
-      { id: '6', name: '💻 dev-talk', is_public: true, user_id: true },
-      { id: '7', name: '🎨 art-share', is_public: true, user_id: true },
-      { id: '8', name: '🎶 music', is_public: true, user_id: true },
-      { id: '9', name: '📚 knowledge-base', is_public: true, user_id: true },
-      { id: '10', name: '🍿 movies-tv', is_public: true, user_id: true },
-      { id: '11', name: '📷 photography', is_public: true, user_id: true },
-      { id: '12', name: '🍔 foodies', is_public: true, user_id: true },
-      { id: '13', name: '🌍 world-news', is_public: true, user_id: true },
-      { id: '14', name: '⚽ sports', is_public: true, user_id: true },
-      { id: '15', name: '📈 crypto-stocks', is_public: true, user_id: true },
-      { id: '16', name: '🎭 memes', is_public: true, user_id: true },
-      { id: '17', name: '🤖 ai-bots', is_public: true, user_id: true },
-      { id: '18', name: '📖 book-club', is_public: true, user_id: true },
-      { id: '19', name: '✈️ travel', is_public: true, user_id: true },
-      { id: '20', name: '🚀 tech-trends', is_public: true, user_id: true },
-      { id: '21', name: '🎤 voice-hangout', is_public: true, user_id: true },
-      { id: '22', name: '🔒 private-chat', is_public: true, user_id: true },
-      { id: '23', name: '⚙️ project-lab', is_public: false, user_id: false },
-      { id: '24', name: '📝 feedback', is_public: false, user_id: false },
-      { id: '25', name: '🎉 events', is_public: false, user_id: false },
-      { id: '26', name: '🐾 pets', is_public: false, user_id: false },
-      { id: '27', name: '🛠️ coding-help', is_public: false, user_id: false },
-      { id: '28', name: '💡 ideas', is_public: false, user_id: false },
-      { id: '29', name: '🌌 sci-fi', is_public: false, user_id: false },
-      { id: '30', name: '🔥 trending', is_public: false, user_id: false }
+      { id: '2', name: '💬 chit-chat', is_public: true, user_id: false },
+      { id: '3', name: '🆘 help-desk', is_public: true, user_id: false },
+      { id: '4', name: '📢 announcements', is_public: true, user_id: false },
+      { id: '5', name: '🎮 gaming', is_public: true, user_id: false },
+      { id: '6', name: '💻 dev-talk', is_public: true, user_id: false },
+      { id: '7', name: '🎨 art-share', is_public: false, user_id: false },
+      { id: '8', name: '🔒 private-chat', is_public: false, user_id: false },
+      { id: '9', name: '📖 book-club', is_public: false, user_id: false }
     ])
+  }
+
+  if (user.value) {
+    userChannelsStore.addUserToChannel(user.value.id, '1')
+    userChannelsStore.addUserToChannel(user.value.id, '2')
+    userChannelsStore.addUserToChannel(user.value.id, '3')
   }
 
   const all = channelsStore.channels.map(c => c.id)
   const count = Math.min(5, all.length)
   highlightedChannels.value = all
-    .sort(() => 0.5 - Math.random()) // shuffle
+    .sort(() => 0.5 - Math.random())
     .slice(0, count)
 })
 </script>
