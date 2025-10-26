@@ -1,1 +1,40 @@
 // app global css in SCSS form
+html, body, #q-app {
+  height: 100vh;
+  overflow: hidden;
+  font-family: "Roboto Mono", monospace;
+}
+
+// Dark mode override
+body.body--dark {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><text x='10' y='20' font-size='14' fill='%232a2b30'>+</text><text x='40' y='40' font-size='14' fill='%232a2b30'>×</text><text x='60' y='60' font-size='14' fill='%232a2b30'>◇</text></svg>");
+}
+
+body{
+  background-color: $light-page;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80'><text x='10' y='20' font-size='14' fill='%23e0e0e0'>+</text><text x='40' y='40' font-size='14' fill='%23e0e0e0'>×</text><text x='60' y='60' font-size='14' fill='%23e0e0e0'>◇</text></svg>");
+  background-repeat: repeat;
+}
+
+:root {
+  --page-bg: $light-page;
+}
+
+body.body--dark {
+  --page-bg: $dark-page;
+}
+
+body.body--dark .q-card {
+  background-color: $dark-page; // Dark mode color
+}
+
+body.body--light .q-card {
+  background-color: $light-page; // Dark mode color
+}
+
+
+.q-card {
+  border: 1px solid #6154623c;
+}
+
+

@@ -1,12 +1,6 @@
 // src/types/auth.ts
 
-export interface User {
-  id: number
-  firstName: string
-  lastName: string
-  nickname: string
-  email: string
-}
+import type { User } from "./user"
 
 export interface AuthToken {
   type: string

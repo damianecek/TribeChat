@@ -1,11 +1,7 @@
-import { defineRouter } from '#q-app/wrappers';
-import {
-  createMemoryHistory,
-  createRouter,
-  createWebHashHistory,
-  createWebHistory,
-} from 'vue-router';
-import routes from './routes';
+import { defineRouter } from '#q-app/wrappers'
+import { createMemoryHistory, createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
+import { useAuthStore } from 'src/stores/auth'
+import routes from './routes'
 
 /*
  * If not building with SSR mode, you can
@@ -20,10 +16,10 @@ export default defineRouter(function (/* { store, ssrContext } */) {
   const createHistory = process.env.SERVER
     ? createMemoryHistory
     : process.env.VUE_ROUTER_MODE === 'history'
-      ? createWebHistory
-      : createWebHashHistory;
+        ? createWebHistory
+        : createWebHashHistory
 
-  const Router = createRouter({
+  const router = createRouter({
     scrollBehavior: () => ({ left: 0, top: 0 }),
     routes,
 
@@ -31,7 +27,30 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     // quasar.conf.js -> build -> vueRouterMode
     // quasar.conf.js -> build -> publicPath
     history: createHistory(process.env.VUE_ROUTER_BASE),
-  });
+  })
 
-  return Router;
-});
+  router.beforeEach(async (to, from, next) => {
+    const auth = useAuthStore()
+
+    if (to.path === '/' && auth.isLoggedIn) {
+      return next('/main')
+    }
+
+    if (to.meta.requiresAuth) {
+      if (!auth.isLoggedIn) {
+        try {
+          await auth.fetchUser() // calls /me
+          next()
+        } catch {
+          next('/')
+        }
+      } else {
+        next()
+      }
+    } else {
+      next()
+    }
+  })
+
+  return router
+})
