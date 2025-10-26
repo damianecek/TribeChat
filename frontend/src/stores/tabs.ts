@@ -33,3 +33,6 @@ export const useTabsStore = defineStore('tabs', () => {
 
   return { tabs, activeTab, addTab, closeTab, setActiveTab }
 })
+
+
+export type TabsStore = ReturnType<typeof useTabsStore>

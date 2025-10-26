@@ -27,3 +27,6 @@ export const useChannelsStore = defineStore('channels', () => {
 
   return { channels, setChannels, addChannel, deleteChannel, updateChannel }
 })
+
+
+export type ChannelsStore = ReturnType<typeof useChannelsStore>

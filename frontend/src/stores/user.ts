@@ -33,6 +33,17 @@ export const useUserStore = defineStore('user', () => {
     users.value = users.value.filter((u) => u.id !== id);
   }
 
+  function findUserByName(nickname: string): User | null {
+    const user = users.value.find((u) => u.nickname === nickname);
+    return user || null;
+  }
+
+  function findUserById(id: number): User | null {
+    const user = users.value.find((u) => u.id === id);
+    return user || null;
+  }
+
+
   return {
     currentUser,
     users,
@@ -42,5 +53,10 @@ export const useUserStore = defineStore('user', () => {
     addUser,
     updateUser,
     removeUser,
+    findUserByName,
+    findUserById
   };
 });
+
+
+export type UserStore = ReturnType<typeof useUserStore>;

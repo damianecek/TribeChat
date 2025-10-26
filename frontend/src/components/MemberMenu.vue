@@ -101,6 +101,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChannelsStore } from 'stores/channels'
 import { useUserChannelsStore } from 'stores/user_channels'
+import { useUserStore } from 'stores/user'
 import { useTabsStore } from 'stores/tabs'
 import type { User } from 'src/types/user'
 
@@ -108,6 +109,7 @@ const router = useRouter()
 const tabsStore = useTabsStore()
 const channelsStore = useChannelsStore()
 const userChannelsStore = useUserChannelsStore()
+const userStore = useUserStore()
 
 const activeTab = computed(() => tabsStore.activeTab)
 
@@ -116,6 +118,8 @@ const users = computed<User[]>(() => [
   { id: 3, firstName: 'Bob', lastName: 'Green', nickname: 'bobbyg', email: 'b@b.com', status: 'Away', icon: 'person' },
   { id: 4, firstName: 'Charlie', lastName: 'Red', nickname: 'charlier', email: 'c@c.com', status: 'Offline', icon: 'person' }
 ])
+
+users.value.forEach(u => userStore.addUser(u))
 
 
 const isOwner = computed(() => {

@@ -22,5 +22,12 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     return userChannels.value.filter(uc => uc.user_id === user_id).map(uc => uc.channel_id)
   }
 
-  return { userChannels, addUserToChannel, removeUserFromChannel, getChannelsForUser }
+  function getUsersInChannel(channel_id: string) {
+    return userChannels.value.filter(uc => uc.channel_id === channel_id).map(uc => uc.user_id)
+  }
+
+  return { userChannels, addUserToChannel, removeUserFromChannel, getChannelsForUser, getUsersInChannel }
 })
+
+
+export type UserChannelsStore = ReturnType<typeof useUserChannelsStore>;

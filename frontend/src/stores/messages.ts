@@ -15,3 +15,5 @@ export const useMessagesStore = defineStore('messages', () => {
 
   return { messages, addMessage, getMessages };
 });
+
+export type MessageStore = ReturnType<typeof useMessagesStore>;
