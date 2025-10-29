@@ -3,27 +3,46 @@
     <q-btn dense flat round icon="menu" @click="ui.toggleLeftDrawer" />
 
     <div class="col">
-      <q-tabs
-        :model-value="activeTab"
-        @update:model-value="$emit('update:activeTab', $event)"
-        shrink
-        stretch
-        inline-label
-        align="left"
-        class="col-shrink"
+    <!-- Tabs for larger screens -->
+    <q-tabs
+      v-if="windowWidth > 600"
+      :model-value="activeTab"
+      @update:model-value="$emit('update:activeTab', $event)"
+      shrink
+      stretch
+      inline-label
+      align="left"
+      class="col-shrink"
+    >
+      <q-tab
+        v-for="tab in tabs"
+        :key="tab.id"
+        :name="tab.id"
+        :label="tab.label"
       >
-        <q-tab v-for="tab in tabs" :key="tab.id" :name="tab.id" :label="tab.label">
-          <q-btn
-            flat
-            dense
-            round
-            size="sm"
-            icon="close"
-            @click.stop="$emit('close-tab', tab.id)"
-          />
-        </q-tab>
-      </q-tabs>
-    </div>
+        <q-btn
+          flat
+          dense
+          round
+          size="sm"
+          icon="close"
+          @click.stop="$emit('close-tab', tab.id)"
+        />
+      </q-tab>
+    </q-tabs>
+
+    <!-- Dropdown for small screens -->
+    <q-select
+      v-else
+      filled
+      dense
+      :options="tabs.map(tab => ({ label: tab.label, value: tab.id }))"
+      :model-value="activeTab"
+      label="Select Tab"
+      emit-value
+      map-options
+    />
+  </div>
 
     <q-btn
       dense
@@ -52,13 +71,14 @@
 
 <script setup lang="ts">
 import { Dark } from 'quasar'
-import { computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import MessageList from 'components/MessageList.vue'
 import { useUiStore } from 'src/stores/ui'
 import type { Tab } from 'src/types'
 
 const ui = useUiStore()
 
+const windowWidth = ref(window.innerWidth);
 const isDark = computed(() => Dark.isActive)
 const toggleDark = () => Dark.set(!Dark.isActive)
 
@@ -66,6 +86,13 @@ defineProps<{
   tabs: Tab[]
   activeTab: string
 }>()
+
+const handleResize = () => {
+  windowWidth.value = window.innerWidth
+}
+
+onMounted(() => window.addEventListener('resize', handleResize))
+onUnmounted(() => window.removeEventListener('resize', handleResize))
 
 defineEmits<{
   (e: 'update:activeTab', val: string): void
