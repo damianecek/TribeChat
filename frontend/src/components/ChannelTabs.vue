@@ -77,11 +77,11 @@
       round
       :icon="isDark ? 'dark_mode' : 'light_mode'"
       :color="isDark ? 'secondary' : 'grey-8'"
-      class="q-mr-sm col-auto"
+      class="q-mr-sm col-shrink"
       @click="toggleDark"
     />
 
-    <q-btn dense flat round icon="group" class="q-ml-sm col-auto" @click="ui.toggleRightDrawer" />
+    <q-btn dense flat round icon="group" class="q-ml-sm col-shrink" @click="ui.toggleRightDrawer" />
   </q-toolbar>
 
   <q-tab-panels
