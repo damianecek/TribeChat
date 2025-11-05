@@ -178,6 +178,7 @@ const auth = useAuthStore()
 const tabsStore = useTabsStore()
 const channelsStore = useChannelsStore()
 const userChannelsStore = useUserChannelsStore()
+
 const isLoggedIn = computed(() => auth.isLoggedIn)
 const user = computed(() => auth.user)
 const channels = computed(() => channelsStore.channels)
@@ -229,29 +230,67 @@ function openChannel(channel: Channel) {
   }
 }
 
-function addChannel() {
+// ============ API INTEGRATION ============
+
+// načítanie kanálov po prihlásení
+onMounted(async () => {
+  if (!auth.isLoggedIn) return
+  try {
+    const res = await fetch('http://localhost:3333/channels', {
+      headers: {
+        Authorization: `Bearer ${auth.token}`,
+      },
+    })
+    if (res.ok) {
+      const data = await res.json()
+      channelsStore.setChannels(data)
+    } else {
+      console.error('Error loading channels:', await res.text())
+    }
+  } catch (err) {
+    console.error('Fetch failed:', err)
+  }
+})
+
+// vytvorenie nového kanála
+async function addChannel() {
   if (!user.value) return
   const name = newChannelName.value.trim()
   if (!name) return
 
-  const newId = String(Date.now())
-  const is_public = !newIsPublic.value
+  try {
+    const res = await fetch('http://localhost:3333/channels', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${auth.token}`,
+      },
+      body: JSON.stringify({
+        channelName: name,
+        isPublic: !newIsPublic.value,
+      }),
+    })
 
-  const newChannel: Channel = {
-    id: newId,
-    name,
-    is_public,
-    user_id: true
+    if (res.ok) {
+      const created = await res.json()
+      const channel: Channel = {
+        id: created.id,
+        name: created.channelName,
+        is_public: created.isPublic,
+        user_id: created.adminId,
+      }
+      channelsStore.addChannel(channel)
+      newChannelName.value = ''
+      showAddDialog.value = false
+    } else {
+      console.error('Error creating channel:', await res.text())
+    }
+  } catch (err) {
+    console.error('Create failed:', err)
   }
-
-  channelsStore.addChannel(newChannel)
-
-  userChannelsStore.addUserToChannel(user.value.id, newId)
-
-  newChannelName.value = ''
-  showAddDialog.value = false
 }
 
+// úprava kanála (len lokálne)
 function openEditDialog(channel: Channel) {
   channelBeingEdited.value = channel
   editChannelName.value = channel.name
@@ -268,11 +307,26 @@ function saveEdit() {
   showEditDialog.value = false
 }
 
-function deleteChannel(channel: Channel) {
-  if (!user.value) return
-  userChannelsStore.removeUserFromChannel(user.value.id, channel.id)
-  channelsStore.deleteChannel(channel.id)
+// vymazanie kanála
+async function deleteChannel(channel: Channel) {
+  if (!channel?.id) return
+  try {
+    const res = await fetch(`http://localhost:3333/channels/${channel.id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${auth.token}`,
+      },
+    })
+    if (res.ok) {
+      channelsStore.deleteChannel(channel.id)
+    } else {
+      console.error('Failed to delete channel:', await res.text())
+    }
+  } catch (err) {
+    console.error('Delete failed:', err)
+  }
 }
+
 
 function getStatusColor(status: string): string {
   switch (status.toLowerCase()) {
@@ -294,34 +348,12 @@ function leaveChannel(channel: Channel) {
   userChannelsStore.removeUserFromChannel(user.value.id, channel.id)
 }
 
-
 function handleScrollLoad(_index: number, done: () => void) {
   done()
 }
 
 const highlightedChannels = ref<string[]>([])
-
 onMounted(() => {
-  if (channelsStore.channels.length === 0) {
-    channelsStore.setChannels([
-      { id: '1', name: '🌐 general', is_public: true, user_id: true },
-      { id: '2', name: '💬 chit-chat', is_public: true, user_id: false },
-      { id: '3', name: '🆘 help-desk', is_public: true, user_id: false },
-      { id: '4', name: '📢 announcements', is_public: true, user_id: false },
-      { id: '5', name: '🎮 gaming', is_public: true, user_id: false },
-      { id: '6', name: '💻 dev-talk', is_public: true, user_id: false },
-      { id: '7', name: '🎨 art-share', is_public: false, user_id: false },
-      { id: '8', name: '🔒 private-chat', is_public: false, user_id: false },
-      { id: '9', name: '📖 book-club', is_public: false, user_id: false }
-    ])
-  }
-
-  if (user.value) {
-    userChannelsStore.addUserToChannel(user.value.id, '1')
-    userChannelsStore.addUserToChannel(user.value.id, '2')
-    userChannelsStore.addUserToChannel(user.value.id, '3')
-  }
-
   const all = channelsStore.channels.map(c => c.id)
   const count = Math.min(5, all.length)
   highlightedChannels.value = all

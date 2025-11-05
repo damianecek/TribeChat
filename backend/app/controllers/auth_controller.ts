@@ -3,16 +3,19 @@ import User from '#models/user'
 
 export default class AuthController {
   /**
-   * Register
+   * REGISTER
+   * POST /auth/register
    */
-  async register({ request, auth, response }: HttpContext) {
+  async register({ request, response }: HttpContext) {
     const data = request.only(['firstName', 'lastName', 'nickname', 'email', 'password'])
 
     try {
       const user = await User.create(data)
+
       const token = await User.accessTokens.create(user)
 
-      return {
+      return response.created({
+        message: 'User registered successfully',
         user: {
           id: user.id,
           firstName: user.firstName,
@@ -21,25 +24,27 @@ export default class AuthController {
           email: user.email,
         },
         token,
-      }
+      })
     } catch (error) {
-      console.error(error)
-      return response.badRequest({ message: 'Registration failed' })
+      console.error('REGISTER ERROR:', error)
+      return response.badRequest({ message: 'Registration failed', details: error.message })
     }
   }
 
   /**
-   * Login
+   * LOGIN
+   * POST /auth/login
    */
   async login({ request, response }: HttpContext) {
     const { uid, password } = request.only(['uid', 'password'])
-    // uid = email alebo nickname (máme to v uids confige)
 
     try {
       const user = await User.verifyCredentials(uid, password)
+
       const token = await User.accessTokens.create(user)
 
-      return {
+      return response.ok({
+        message: 'Login successful',
         user: {
           id: user.id,
           firstName: user.firstName,
@@ -48,32 +53,44 @@ export default class AuthController {
           email: user.email,
         },
         token,
-      }
-    } catch {
-      return response.unauthorized({ message: 'Invalid credentials' })
+      })
+    } catch (error) {
+      console.error('LOGIN ERROR:', error)
+      return response.unauthorized({ message: 'Invalid credentials', details: error.message })
     }
   }
 
   /**
-   * Logout
+   * LOGOUT
+   * POST /auth/logout
    */
   async logout({ auth, response }: HttpContext) {
-    if (auth.user) {
-      await User.accessTokens.delete(auth.user, auth.user.currentAccessToken.identifier)
+    try {
+      const user = auth.user
+      const token = auth.user?.currentAccessToken
+
+      if (user && token) {
+        await User.accessTokens.delete(user, token.identifier)
+      }
+
+      return response.ok({ message: 'Logged out successfully' })
+    } catch (error) {
+      console.error('LOGOUT ERROR:', error)
+      return response.internalServerError({ message: 'Logout failed', details: error.message })
     }
-    return response.ok({ message: 'Logged out successfully' })
   }
+
   /**
-   * Me
+   * ME
+   * GET /auth/me
    */
   async me({ auth, response }: HttpContext) {
-    if (!auth.user) {
+    const user = auth.user
+    if (!user) {
       return response.unauthorized({ message: 'Not authenticated' })
     }
 
-    const user = auth.user
-
-    return {
+    return response.ok({
       user: {
         id: user.id,
         firstName: user.firstName,
@@ -81,6 +98,6 @@ export default class AuthController {
         nickname: user.nickname,
         email: user.email,
       },
-    }
+    })
   }
 }

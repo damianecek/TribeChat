@@ -14,35 +14,15 @@
       </q-banner>
 
       <q-form @submit.prevent="onSubmit" class="q-gutter-md">
-        <q-input
-          v-model="uid"
-          label="email/nickname"
-          outlined
-          dense
-          :disable="loading"
-          :rules="[val => !!val || 'necesarry field!']"
-        />
+        <q-input v-model="uid" label="email/nickname" outlined dense :disable="loading"
+          :rules="[val => !!val || 'necesarry field!']" />
 
-        <q-input
-          v-model="password"
-          label="passwrd"
-          type="password"
-          outlined
-          dense
-          :disable="loading"
-          :rules="[val => !!val || 'necesarry field!']"
-        />
+        <q-input v-model="password" label="passwrd" type="password" outlined dense :disable="loading"
+          :rules="[val => !!val || 'necesarry field!']" />
 
         <div class="row justify-center">
-          <q-btn
-            label="log in"
-            type="submit"
-            color="primary"
-            unelevated
-            size="m"
-            class="q-mt-sm full-width"
-            :loading="loading"
-          />
+          <q-btn label="log in" type="submit" color="primary" unelevated size="m" class="q-mt-sm full-width"
+            :loading="loading" />
         </div>
       </q-form>
 
@@ -60,7 +40,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from 'stores/auth'
 import { api } from 'boot/axios'
+import type { UserStatus } from 'src/types'
 
 interface LoginResponse {
   user: {
@@ -69,6 +51,7 @@ interface LoginResponse {
     lastName: string
     nickname: string
     email: string
+    status: UserStatus
   }
   token: {
     type: string
@@ -82,6 +65,7 @@ const password = ref('')
 const router = useRouter()
 const loading = ref(false)
 const errorMessage = ref('')
+const auth = useAuthStore()
 
 const clearError = () => {
   errorMessage.value = ''
@@ -97,22 +81,23 @@ async function onSubmit() {
       password: password.value,
     })
 
-    const { token } = res.data
+    const { token, user } = res.data
 
-    // uložiť token
-    localStorage.setItem('token', token.token)
-    api.defaults.headers.common['Authorization'] = `Bearer ${token.token}`
+    auth.setToken(token.token)
+    auth.user = user
 
-    // redirect
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
     await router.push('/main')
   } catch (err) {
-    console.error(err)
+    console.error('Login error:', err)
     errorMessage.value = 'Prihlásenie zlyhalo. Skontroluj údaje a skús znova.'
   } finally {
     loading.value = false
   }
 }
 </script>
+
 
 <style scoped>
 .auth-card {
