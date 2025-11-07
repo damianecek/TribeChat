@@ -15,7 +15,7 @@ const AuthController = () => import('#controllers/auth_controller')
 // const UsersController = () => import('#controllers/users_controller')
 const ChannelsController = () => import('#controllers/channels_controller')
 // const MessagesController = () => import('#controllers/messages_controller')
-// const UserChannelsController = () => import('#controllers/user_channels_controller')
+const UserChannelsController = () => import('#controllers/user_channels_controller')
 // const BlacklistController = () => import('#controllers/blacklists_controller')
 // const TypingStatusController = () => import('#controllers/typing_statuses_controller')
 
@@ -59,13 +59,13 @@ router
 //   .prefix('/channels')
 //   .use(middleware.auth())
 
-// router
-//   .group(() => {
-//     router.get('/', [UserChannelsController, 'index'])
-//     router.delete('/:channelId', [UserChannelsController, 'destroy'])
-//   })
-//   .prefix('/user-channels')
-//   .use(middleware.auth())
+router
+  .group(() => {
+    router.get('/', [UserChannelsController, 'index'])
+    // router.delete('/:channelId', [UserChannelsController, 'destroy'])
+  })
+  .prefix('/user-channels')
+  .use(middleware.auth())
 
 // router
 //   .group(() => {

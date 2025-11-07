@@ -6,6 +6,5 @@ export interface User {
   lastName: string
   nickname: string
   email: string
-  status: UserStatus
-  icon?: string
+  status: UserStatus 
 }

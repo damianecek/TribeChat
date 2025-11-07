@@ -14,7 +14,7 @@
 
           <q-item v-for="userItem in usersInChannel" :key="userItem.id" clickable>
             <q-item-section avatar>
-              <q-avatar :icon="userItem.icon || 'person'" color="primary" text-color="white" class="status-avatar"
+              <q-avatar :icon="'person'" color="primary" text-color="white" class="status-avatar"
                 :style="{ '--status-color': getStatusColor(userItem.status) }" />
             </q-item-section>
 
@@ -58,7 +58,7 @@
 
           <q-item v-for="userItem in otherUsers" :key="userItem.id">
             <q-item-section avatar>
-              <q-avatar :icon="userItem.icon || 'person'" color="primary" text-color="white" class="status-avatar"
+              <q-avatar :icon="'person'" color="primary" text-color="white" class="status-avatar"
                 :style="{ '--status-color': getStatusColor(userItem.status) }" />
             </q-item-section>
 
@@ -124,15 +124,15 @@ users.value.forEach(u => userStore.addUser(u))
 
 const isOwner = computed(() => {
   const ch = channelsStore.channels.find(ch => ch.id === tabsStore.activeTab)
-  return !!ch?.user_id
+  return !!ch?.adminId
 })
 
 
 
 const usersInChannel = computed(() => {
   const uc = userChannelsStore.userChannels
-    .filter(link => link.channel_id === activeTab.value)
-    .map(link => link.user_id)
+    .filter(link => link.channelId === activeTab.value)
+    .map(link => link.userId)
   return users.value.filter(u => uc.includes(u.id))
 })
 

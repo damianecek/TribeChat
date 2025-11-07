@@ -1,11 +1,11 @@
 <template>
   <div class="row items-center q-px-md q-mt-auto">
     <div class="col">
-      <q-input 
-      v-model="text" 
-      autogrow 
-      placeholder="Type a command..." 
-      filled 
+      <q-input
+      v-model="text"
+      autogrow
+      placeholder="Type a command..."
+      filled
       dense
       @keydown.enter.prevent="handleEnter"
       >
@@ -35,11 +35,11 @@ const $q = useQuasar()
 const text = ref('')
 const tabStore = useTabsStore()
 const messagesStore = useMessagesStore()
-const { addOrGetChannel, 
+const { addOrGetChannel,
       cancelActiveChannel,
       inviteUserToChannel,
       kickUserFromChannel,
-      listChannelMembers 
+      listChannelMembers
     } = useChannelActions()
 
 function getErrorMessage(err: unknown): string {
@@ -82,7 +82,7 @@ const executeCommand = (input: string): boolean => {
       if (!result) {
           $q.notify({ type: 'warning', message: 'No active channel to leave' })
         } else {
-          $q.notify({ type: 'positive', message: `Left #${result.name}` })
+          $q.notify({ type: 'positive', message: `Left #${result.channelName}` })
         }
       } catch (err: unknown) {
         const msg = getErrorMessage(err)

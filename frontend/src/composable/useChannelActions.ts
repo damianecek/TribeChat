@@ -27,8 +27,8 @@ export function useChannelActions() {
     } else {
       tabsStore.addTab({
         id: channel.id,
-        label: channel.name,
-        content: `Welcome to #${channel.name}!`
+        label: channel.channelName,
+        content: `Welcome to #${channel.channelName}!`
       })
       tabsStore.setActiveTab(channel.id)
     }
@@ -39,21 +39,20 @@ export function useChannelActions() {
     if (!trimmed) throw new Error('Channel name required')
 
     // try find by exact name
-    let ch: Channel | undefined = channelsStore.channels.find(c => c.name === trimmed)
+    let ch: Channel | undefined = channelsStore.channels.find(c => c.channelName === trimmed)
     if (!ch) {
       const id = String(Date.now())
       const newChannel: Channel = {
         id,
-        name: trimmed,
-        is_public: isPublic,
-        // ChannelMenu used boolean for user_id to indicate owner/member presence
-        user_id: !!auth.user
+        channelName: trimmed,
+        isPublic: isPublic,
+        adminId: auth.user?.id
       }
       channelsStore.addChannel(newChannel)
       ch = newChannel
     }
 
-    if (!ch.is_public) {
+    if (!ch.isPublic) {
       throw new Error(`Channel #${trimmed} is private`)
     }
 
@@ -86,13 +85,13 @@ export function useChannelActions() {
       userChannelsStore.removeUserFromChannel(uid, ch.id)
     }
 
-    const isOwner = !!auth.user && (ch.user_id === true)
+    const isOwner = !!auth.user && (ch.adminId === auth.user.id)
 
     if (isOwner) {
       channelsStore.deleteChannel(ch.id)
     }
 
-    tabsApi.closeTab(ch.id)    
+    tabsApi.closeTab(ch.id)
 
     return ch
   }
@@ -132,7 +131,7 @@ export function useChannelActions() {
   function inviteUserToChannel(nickname: string) {
     if (!nickname) throw new Error('User id required')
     const cid = resolveChannelId()
-    
+
     const user: User | null = userStore.findUserByName(nickname)
 
     if (user === null) {
@@ -152,7 +151,7 @@ export function useChannelActions() {
   function kickUserFromChannel(nickname: string) {
     if (!nickname) throw new Error('User id required')
     const cid = resolveChannelId()
-    
+
     const user: User | null = userStore.findUserByName(nickname)
 
     if (user === null) {

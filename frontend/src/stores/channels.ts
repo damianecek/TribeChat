@@ -16,8 +16,8 @@ export const useChannelsStore = defineStore('channels', () => {
   function updateChannel(id: string, newName: string, is_public: boolean) {
     const channel = channels.value.find(item => item.id === id)
     if (channel){
-      channel.name = newName
-      channel.is_public = is_public
+      channel.channelName = newName
+      channel.isPublic = is_public
     }
   }
 

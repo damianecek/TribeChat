@@ -1,32 +1,37 @@
 
 import { defineStore } from 'pinia'
+import type { UserChannel } from 'src/types/user_channel';
 import { ref } from 'vue'
 
 export const useUserChannelsStore = defineStore('userChannels', () => {
-  const userChannels = ref<{ user_id: number; channel_id: string }[]>([])
+  const userChannels = ref<{ userId: number; channelId: string }[]>([])
 
-  function addUserToChannel(user_id: number, channel_id: string) {
+  function setUserChannels(newUserChannels: UserChannel[]){
+    userChannels.value = newUserChannels
+  }
+
+  function addUserToChannel(userId: number, channelId: string) {
     const exists = userChannels.value.some(
-      uc => uc.user_id === user_id && uc.channel_id === channel_id
+      uc => uc.userId === userId && uc.channelId === channelId
     )
-    if (!exists) userChannels.value.push({ user_id, channel_id })
+    if (!exists) userChannels.value.push({ userId, channelId })
   }
 
-  function removeUserFromChannel(user_id: number, channel_id: string) {
+  function removeUserFromChannel(userId: number, channelId: string) {
     userChannels.value = userChannels.value.filter(
-      uc => !(uc.user_id === user_id && uc.channel_id === channel_id)
+      uc => !(uc.userId === userId && uc.channelId === channelId)
     )
   }
 
-  function getChannelsForUser(user_id: number) {
-    return userChannels.value.filter(uc => uc.user_id === user_id).map(uc => uc.channel_id)
+  function getChannelsForUser(userId: number) {
+    return userChannels.value.filter(uc => uc.userId === userId).map(uc => uc.channelId)
   }
 
-  function getUsersInChannel(channel_id: string) {
-    return userChannels.value.filter(uc => uc.channel_id === channel_id).map(uc => uc.user_id)
+  function getUsersInChannel(channelId: string) {
+    return userChannels.value.filter(uc => uc.channelId === channelId).map(uc => uc.userId)
   }
 
-  return { userChannels, addUserToChannel, removeUserFromChannel, getChannelsForUser, getUsersInChannel }
+  return { userChannels, addUserToChannel, removeUserFromChannel, getChannelsForUser, getUsersInChannel, setUserChannels }
 })
 
 

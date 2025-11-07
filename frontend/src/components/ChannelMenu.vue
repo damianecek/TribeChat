@@ -23,9 +23,9 @@
                 @click="openChannel(channel)">
                 <q-item-section>
                   <div class="row items-center no-wrap">
-                    <span>{{ channel.name }}</span>
-                    <q-icon v-if="!channel.is_public" name="lock" size="16px" class="q-ml-sm text-grey" />
-                    <q-icon v-if="channel.user_id" name="person" size="16px" class="q-ml-xs text-primary" />
+                    <span>{{ channel.channelName }}</span>
+                    <q-icon v-if="!channel.isPublic" name="lock" size="16px" class="q-ml-sm text-grey" />
+                    <q-icon v-if="channel.adminId === user?.id" name="person" size="16px" class="q-ml-xs text-primary" />
                   </div>
                 </q-item-section>
 
@@ -33,7 +33,7 @@
                   <q-btn dense flat round icon="more_vert" @click.stop>
                     <q-menu auto-close class="no-shadow">
                       <q-list style="min-width: 120px">
-                        <q-item v-if="channel.user_id" clickable v-close-popup @click="openEditDialog(channel)">
+                        <q-item v-if="channel.adminId === user?.id" clickable v-close-popup @click="openEditDialog(channel)">
                           <q-item-section>Edit</q-item-section>
                         </q-item>
 
@@ -41,7 +41,7 @@
                           <q-item-section class="text-warning">Leave</q-item-section>
                         </q-item>
 
-                        <q-item v-if="channel.user_id" clickable v-close-popup @click="deleteChannel(channel)">
+                        <q-item v-if="channel.adminId === user?.id" clickable v-close-popup @click="deleteChannel(channel)">
                           <q-item-section class="text-negative">Delete</q-item-section>
                         </q-item>
                       </q-list>
@@ -57,8 +57,8 @@
               <q-item v-for="channel in otherChannels" :key="channel.id" class="channel-menu-element items-center">
                 <q-item-section>
                   <div class="row items-center no-wrap">
-                    <span>{{ channel.name }}</span>
-                    <q-icon v-if="!channel.is_public" name="lock" size="16px" class="q-ml-sm text-grey" />
+                    <span>{{ channel.channelName }}</span>
+                    <q-icon v-if="!channel.isPublic" name="lock" size="16px" class="q-ml-sm text-grey" />
                   </div>
                 </q-item-section>
 
@@ -66,11 +66,11 @@
                   <q-btn dense flat round icon="more_vert" @click.stop>
                     <q-menu auto-close class="no-shadow">
                       <q-list style="min-width: 120px">
-                        <q-item v-if="channel.user_id" clickable v-close-popup @click="openEditDialog(channel)">
+                        <q-item v-if="channel.adminId === user?.id" clickable v-close-popup @click="openEditDialog(channel)">
                           <q-item-section>Edit</q-item-section>
                         </q-item>
 
-                        <q-item v-if="channel.is_public" clickable v-close-popup @click="joinChannel(channel)">
+                        <q-item v-if="channel.isPublic" clickable v-close-popup @click="joinChannel(channel)">
                           <q-item-section class="text-positive">Join</q-item-section>
                         </q-item>
                       </q-list>
@@ -187,8 +187,8 @@ const myChannels = computed(() => {
   if (!user.value) return []
   const userChannelIds = userChannelsStore
     .userChannels
-    .filter(uc => uc.user_id === user.value!.id)
-    .map(uc => uc.channel_id)
+    .filter(uc => uc.userId === user.value!.id)
+    .map(uc => uc.channelId)
   return channels.value.filter(ch => userChannelIds.includes(ch.id))
 })
 
@@ -196,8 +196,8 @@ const otherChannels = computed(() => {
   if (!user.value) return channels.value
   const userChannelIds = userChannelsStore
     .userChannels
-    .filter(uc => uc.user_id === user.value!.id)
-    .map(uc => uc.channel_id)
+    .filter(uc => uc.userId === user.value!.id)
+    .map(uc => uc.channelId)
   return channels.value.filter(ch => !userChannelIds.includes(ch.id))
 })
 
@@ -223,14 +223,12 @@ function openChannel(channel: Channel) {
   } else {
     tabsStore.addTab({
       id: channel.id,
-      label: channel.name,
-      content: `Welcome to #${channel.name}!`
+      label: channel.channelName,
+      content: `Welcome to #${channel.channelName}!`
     })
     tabsStore.setActiveTab(channel.id)
   }
 }
-
-// ============ API INTEGRATION ============
 
 // načítanie kanálov po prihlásení
 onMounted(async () => {
@@ -244,6 +242,21 @@ onMounted(async () => {
     if (res.ok) {
       const data = await res.json()
       channelsStore.setChannels(data)
+    } else {
+      console.error('Error loading channels:', await res.text())
+    }
+  } catch (err) {
+    console.error('Fetch failed:', err)
+  }
+  try {
+    const res = await fetch('http://localhost:3333/user-channels', {
+      headers: {
+        Authorization: `Bearer ${auth.token}`,
+      },
+    })
+    if (res.ok) {
+      const data = await res.json()
+      userChannelsStore.setUserChannels(data)
     } else {
       console.error('Error loading channels:', await res.text())
     }
@@ -275,9 +288,9 @@ async function addChannel() {
       const created = await res.json()
       const channel: Channel = {
         id: created.id,
-        name: created.channelName,
-        is_public: created.isPublic,
-        user_id: created.adminId,
+        channelName: created.channelName,
+        isPublic: created.isPublic,
+        adminId: created.adminId,
       }
       channelsStore.addChannel(channel)
       newChannelName.value = ''
@@ -293,8 +306,8 @@ async function addChannel() {
 // úprava kanála (len lokálne)
 function openEditDialog(channel: Channel) {
   channelBeingEdited.value = channel
-  editChannelName.value = channel.name
-  editIsPublic.value = !channel.is_public
+  editChannelName.value = channel.channelName
+  editIsPublic.value = !channel.isPublic
   showEditDialog.value = true
 }
 
