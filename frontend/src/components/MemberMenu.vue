@@ -113,13 +113,7 @@ const userStore = useUserStore()
 
 const activeTab = computed(() => tabsStore.activeTab)
 
-const users = computed<User[]>(() => [
-  { id: 2, firstName: 'Alice', lastName: 'Blue', nickname: 'aliceb', email: 'a@a.com', status: 'Online', icon: 'person' },
-  { id: 3, firstName: 'Bob', lastName: 'Green', nickname: 'bobbyg', email: 'b@b.com', status: 'Away', icon: 'person' },
-  { id: 4, firstName: 'Charlie', lastName: 'Red', nickname: 'charlier', email: 'c@c.com', status: 'Offline', icon: 'person' }
-])
-
-users.value.forEach(u => userStore.addUser(u))
+const users = userStore.users
 
 
 const isOwner = computed(() => {
@@ -133,12 +127,12 @@ const usersInChannel = computed(() => {
   const uc = userChannelsStore.userChannels
     .filter(link => link.channelId === activeTab.value)
     .map(link => link.userId)
-  return users.value.filter(u => uc.includes(u.id))
+  return users.filter(u => uc.includes(u.id))
 })
 
 const otherUsers = computed(() => {
   const inIds = usersInChannel.value.map(u => u.id)
-  return users.value.filter(u => !inIds.includes(u.id))
+  return users.filter(u => !inIds.includes(u.id))
 })
 
 async function openProfile(user: User) {

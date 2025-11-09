@@ -7,13 +7,10 @@ import { DateTime } from 'luxon'
 export default class ChannelsController {
   /**
    * GET /channels
-   * Vráti zoznam kanálov, kde je aktuálny user členom
    */
-  async index({ auth }: HttpContext) {
-    const user = auth.user!
-    const memberships = await UserChannel.query().where('user_id', user.id).preload('channel')
-    const channels = memberships.map((uc) => uc.channel)
-    return channels
+  async index({ response }: HttpContext) {
+    const channels = await Channel.all()
+    return response.ok(channels)
   }
 
   /**
@@ -108,5 +105,35 @@ export default class ChannelsController {
 
     await channel.delete()
     return { message: `Channel ${channel.channelName} deleted successfully.` }
+  }
+
+  async update({ auth, request, params, response }: HttpContext) {
+    const user = auth.user!
+    const channelId = params.id
+    const { channelName, isPublic } = request.only(['channelName', 'isPublic'])
+
+    const channel = await Channel.find(channelId)
+
+    if (!channel) {
+      return response.notFound({ error: 'Channel not found.' })
+    }
+
+    if (channel.adminId !== user.id) {
+      return response.unauthorized({ error: 'You are not the owner of this channel.' })
+    }
+    if (channel.channelName !== channelName) {
+      const exists = await Channel.findBy('channel_name', channelName)
+      if (exists) {
+        return response.badRequest({ error: 'Channel name already exists.' })
+      }
+    }
+    channel.channelName = channelName ?? channel.channelName
+    channel.isPublic = isPublic ?? channel.isPublic
+    channel.updatedAt = DateTime.local()
+    channel.lastMessage = DateTime.local()
+
+    await channel.save()
+
+    return response.ok(channel)
   }
 }

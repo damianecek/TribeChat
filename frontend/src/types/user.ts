@@ -6,5 +6,7 @@ export interface User {
   lastName: string
   nickname: string
   email: string
-  status: UserStatus 
+  status: UserStatus
+  createdAt: Date
+  updatedAt: Date
 }

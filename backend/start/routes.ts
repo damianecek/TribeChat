@@ -12,7 +12,7 @@ import { middleware } from './kernel.js'
 
 // Controllers
 const AuthController = () => import('#controllers/auth_controller')
-// const UsersController = () => import('#controllers/users_controller')
+const UsersController = () => import('#controllers/users_controller')
 const ChannelsController = () => import('#controllers/channels_controller')
 // const MessagesController = () => import('#controllers/messages_controller')
 const UserChannelsController = () => import('#controllers/user_channels_controller')
@@ -26,16 +26,16 @@ router.group(() => {
   router.get('/me', [AuthController, 'me']).use(middleware.auth())
 })
 
-// router
-//   .group(() => {
-//     router.get('/', [UsersController, 'index'])
-//     router.get('/:id', [UsersController, 'show'])
-//     router.patch('/status', [UsersController, 'updateStatus'])
-//     router.patch('/:id', [UsersController, 'update'])
-//     router.delete('/:id', [UsersController, 'destroy'])
-//   })
-//   .prefix('/users')
-//   .use(middleware.auth())
+router
+  .group(() => {
+    router.get('/', [UsersController, 'index'])
+    // router.get('/:id', [UsersController, 'show'])
+    // router.patch('/status', [UsersController, 'updateStatus'])
+    // router.patch('/:id', [UsersController, 'update'])
+    // router.delete('/:id', [UsersController, 'destroy'])
+  })
+  .prefix('/users')
+  .use(middleware.auth())
 
 router
   .group(() => {
@@ -43,6 +43,7 @@ router
     router.post('/', [ChannelsController, 'store'])
     router.get('/:id', [ChannelsController, 'show'])
     router.get('/:id/members', [ChannelsController, 'members'])
+    router.put('/:id', [ChannelsController, 'update'])
     // router.post('/:id/invite/:userId', [ChannelsController, 'invite'])
     // router.post('/:id/revoke/:userId', [ChannelsController, 'revoke'])
     // router.post('/:id/kick/:userId', [ChannelsController, 'kick'])

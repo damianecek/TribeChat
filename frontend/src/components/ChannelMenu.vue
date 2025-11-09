@@ -25,7 +25,8 @@
                   <div class="row items-center no-wrap">
                     <span>{{ channel.channelName }}</span>
                     <q-icon v-if="!channel.isPublic" name="lock" size="16px" class="q-ml-sm text-grey" />
-                    <q-icon v-if="channel.adminId === user?.id" name="person" size="16px" class="q-ml-xs text-primary" />
+                    <q-icon v-if="channel.adminId === user?.id" name="person" size="16px"
+                      class="q-ml-xs text-primary" />
                   </div>
                 </q-item-section>
 
@@ -33,7 +34,8 @@
                   <q-btn dense flat round icon="more_vert" @click.stop>
                     <q-menu auto-close class="no-shadow">
                       <q-list style="min-width: 120px">
-                        <q-item v-if="channel.adminId === user?.id" clickable v-close-popup @click="openEditDialog(channel)">
+                        <q-item v-if="channel.adminId === user?.id" clickable v-close-popup
+                          @click="openEditDialog(channel)">
                           <q-item-section>Edit</q-item-section>
                         </q-item>
 
@@ -41,7 +43,8 @@
                           <q-item-section class="text-warning">Leave</q-item-section>
                         </q-item>
 
-                        <q-item v-if="channel.adminId === user?.id" clickable v-close-popup @click="deleteChannel(channel)">
+                        <q-item v-if="channel.adminId === user?.id" clickable v-close-popup
+                          @click="deleteChannel(channel)">
                           <q-item-section class="text-negative">Delete</q-item-section>
                         </q-item>
                       </q-list>
@@ -66,7 +69,8 @@
                   <q-btn dense flat round icon="more_vert" @click.stop>
                     <q-menu auto-close class="no-shadow">
                       <q-list style="min-width: 120px">
-                        <q-item v-if="channel.adminId === user?.id" clickable v-close-popup @click="openEditDialog(channel)">
+                        <q-item v-if="channel.adminId === user?.id" clickable v-close-popup
+                          @click="openEditDialog(channel)">
                           <q-item-section>Edit</q-item-section>
                         </q-item>
 
@@ -230,40 +234,6 @@ function openChannel(channel: Channel) {
   }
 }
 
-// načítanie kanálov po prihlásení
-onMounted(async () => {
-  if (!auth.isLoggedIn) return
-  try {
-    const res = await fetch('http://localhost:3333/channels', {
-      headers: {
-        Authorization: `Bearer ${auth.token}`,
-      },
-    })
-    if (res.ok) {
-      const data = await res.json()
-      channelsStore.setChannels(data)
-    } else {
-      console.error('Error loading channels:', await res.text())
-    }
-  } catch (err) {
-    console.error('Fetch failed:', err)
-  }
-  try {
-    const res = await fetch('http://localhost:3333/user-channels', {
-      headers: {
-        Authorization: `Bearer ${auth.token}`,
-      },
-    })
-    if (res.ok) {
-      const data = await res.json()
-      userChannelsStore.setUserChannels(data)
-    } else {
-      console.error('Error loading channels:', await res.text())
-    }
-  } catch (err) {
-    console.error('Fetch failed:', err)
-  }
-})
 
 // vytvorenie nového kanála
 async function addChannel() {
@@ -293,6 +263,7 @@ async function addChannel() {
         adminId: created.adminId,
       }
       channelsStore.addChannel(channel)
+      userChannelsStore.addUserToChannel(created.adminId, channel.id)
       newChannelName.value = ''
       showAddDialog.value = false
     } else {
@@ -303,21 +274,51 @@ async function addChannel() {
   }
 }
 
-// úprava kanála (len lokálne)
 function openEditDialog(channel: Channel) {
   channelBeingEdited.value = channel
   editChannelName.value = channel.channelName
-  editIsPublic.value = !channel.isPublic
+  editIsPublic.value = channel.isPublic
   showEditDialog.value = true
 }
 
-function saveEdit() {
+
+async function saveEdit() {
   if (!channelBeingEdited.value) return
+
   const updatedName = editChannelName.value.trim()
   if (!updatedName) return
 
-  channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, !editIsPublic.value)
-  showEditDialog.value = false
+  try {
+    const res = await fetch(`http://localhost:3333/channels/${channelBeingEdited.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${auth.token}`,
+      },
+      body: JSON.stringify({
+        channelName: updatedName,
+        isPublic: editIsPublic.value,
+      }),
+    })
+
+    if (res.ok) {
+      const updatedChannel = await res.json()
+
+      // lokálne update-ni channelsStore, ak máš reactive array
+      const idx = channelsStore.channels.findIndex(
+        (ch) => ch.id === channelBeingEdited.value!.id
+      )
+      if (idx !== -1) {
+        channelsStore.channels[idx] = updatedChannel
+      }
+
+      showEditDialog.value = false
+    } else {
+      console.error('Failed to update channel:', await res.text())
+    }
+  } catch (err) {
+    console.error('Update failed:', err)
+  }
 }
 
 // vymazanie kanála

@@ -52,6 +52,8 @@ interface LoginResponse {
     nickname: string
     email: string
     status: UserStatus
+    createdAt: Date
+    updatedAt: Date
   }
   token: {
     type: string
@@ -84,9 +86,10 @@ async function onSubmit() {
     const { token, user } = res.data
 
     auth.setToken(token.token)
+
     auth.user = user
 
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await auth.fetchInitialData()
 
     await router.push('/main')
   } catch (err) {
@@ -97,6 +100,7 @@ async function onSubmit() {
   }
 }
 </script>
+
 
 
 <style scoped>
