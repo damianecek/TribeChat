@@ -3,6 +3,7 @@ import Channel from '#models/channel'
 import UserChannel from '#models/user_channel'
 import User from '#models/user'
 import { DateTime } from 'luxon'
+import { getIo } from '#start/ws'
 
 export default class ChannelsController {
   /**
@@ -40,6 +41,12 @@ export default class ChannelsController {
       userId: user.id,
       channelId: channel.id,
     })
+
+    getIo().emit('userChannel:created', {
+      userId: user.id,
+      channelId: channel.id,
+    })
+    getIo().emit('channel:created', channel)
 
     return channel
   }
@@ -104,6 +111,9 @@ export default class ChannelsController {
     }
 
     await channel.delete()
+
+    getIo().emit('channel:deleted', channel.id)
+
     return { message: `Channel ${channel.channelName} deleted successfully.` }
   }
 
@@ -133,6 +143,8 @@ export default class ChannelsController {
     channel.lastMessage = DateTime.local()
 
     await channel.save()
+
+    getIo().emit('channel:updated', channel)
 
     return response.ok(channel)
   }

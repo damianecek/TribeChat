@@ -255,15 +255,6 @@ async function addChannel() {
     })
 
     if (res.ok) {
-      const created = await res.json()
-      const channel: Channel = {
-        id: created.id,
-        channelName: created.channelName,
-        isPublic: created.isPublic,
-        adminId: created.adminId,
-      }
-      channelsStore.addChannel(channel)
-      userChannelsStore.addUserToChannel(created.adminId, channel.id)
       newChannelName.value = ''
       showAddDialog.value = false
     } else {
@@ -273,6 +264,7 @@ async function addChannel() {
     console.error('Create failed:', err)
   }
 }
+
 
 function openEditDialog(channel: Channel) {
   channelBeingEdited.value = channel
@@ -284,7 +276,6 @@ function openEditDialog(channel: Channel) {
 
 async function saveEdit() {
   if (!channelBeingEdited.value) return
-
   const updatedName = editChannelName.value.trim()
   if (!updatedName) return
 
@@ -302,16 +293,6 @@ async function saveEdit() {
     })
 
     if (res.ok) {
-      const updatedChannel = await res.json()
-
-      // lokálne update-ni channelsStore, ak máš reactive array
-      const idx = channelsStore.channels.findIndex(
-        (ch) => ch.id === channelBeingEdited.value!.id
-      )
-      if (idx !== -1) {
-        channelsStore.channels[idx] = updatedChannel
-      }
-
       showEditDialog.value = false
     } else {
       console.error('Failed to update channel:', await res.text())
@@ -321,7 +302,6 @@ async function saveEdit() {
   }
 }
 
-// vymazanie kanála
 async function deleteChannel(channel: Channel) {
   if (!channel?.id) return
   try {
@@ -332,7 +312,7 @@ async function deleteChannel(channel: Channel) {
       },
     })
     if (res.ok) {
-      channelsStore.deleteChannel(channel.id)
+      // nič nerob, event channel:deleted spraví update
     } else {
       console.error('Failed to delete channel:', await res.text())
     }
@@ -340,6 +320,7 @@ async function deleteChannel(channel: Channel) {
     console.error('Delete failed:', err)
   }
 }
+
 
 
 function getStatusColor(status: string): string {
