@@ -63,7 +63,8 @@ router
 router
   .group(() => {
     router.get('/', [UserChannelsController, 'index'])
-    // router.delete('/:channelId', [UserChannelsController, 'destroy'])
+    router.post('/', [UserChannelsController, 'store'])
+    router.delete('/:id', [UserChannelsController, 'destroy'])
   })
   .prefix('/user-channels')
   .use(middleware.auth())

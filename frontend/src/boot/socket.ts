@@ -6,6 +6,7 @@ import { useAuthStore } from 'src/stores/auth';
 import { useChannelsStore } from 'stores/channels';
 import type { Channel } from 'src/types';
 import { useUserChannelsStore } from 'stores/user_channels';
+import { useUserStore } from 'stores/user';
 
 let socket: Socket | null = null;
 
@@ -13,12 +14,29 @@ export default boot(() => {
   const auth = useAuthStore();
   const channelsStore = useChannelsStore();
   const userChannelsStore = useUserChannelsStore();
+  const userStore = useUserStore();
 
   function connectSocket() {
     if (socket || !auth.token) return;
 
     socket = io('http://localhost:3333', {
       auth: { token: auth.token },
+    });
+
+    socket.on('user:status:changed', ({ userId, status }) => {
+      const user = userStore.findUserById(userId);
+      if (user) {
+        user.status = status;
+        userStore.updateUser(user);
+      }
+    });
+
+    socket.on('userChannel:created', ({ userId, channelId }) => {
+      userChannelsStore.addUserToChannel(userId, channelId);
+    });
+
+    socket.on('userChannel:removed', ({ userId, channelId }) => {
+      userChannelsStore.removeUserFromChannel(userId, channelId);
     });
 
     socket.on('connect', () => {

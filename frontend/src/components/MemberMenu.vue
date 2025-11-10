@@ -103,6 +103,7 @@ import { useChannelsStore } from 'stores/channels'
 import { useUserChannelsStore } from 'stores/user_channels'
 import { useUserStore } from 'stores/user'
 import { useTabsStore } from 'stores/tabs'
+import { useAuthStore } from 'stores/auth'
 import type { User } from 'src/types/user'
 
 const router = useRouter()
@@ -110,18 +111,15 @@ const tabsStore = useTabsStore()
 const channelsStore = useChannelsStore()
 const userChannelsStore = useUserChannelsStore()
 const userStore = useUserStore()
+const auth = useAuthStore()
 
 const activeTab = computed(() => tabsStore.activeTab)
-
 const users = userStore.users
 
-
 const isOwner = computed(() => {
-  const ch = channelsStore.channels.find(ch => ch.id === tabsStore.activeTab)
-  return !!ch?.adminId
+  const ch = channelsStore.channels.find(ch => ch.id === activeTab.value)
+  return ch?.adminId === auth.user?.id
 })
-
-
 
 const usersInChannel = computed(() => {
   const uc = userChannelsStore.userChannels
@@ -139,14 +137,14 @@ async function openProfile(user: User) {
   await router.push(`/profile/${user.id}`)
 }
 
-function inviteUser(user: User) {
+async function inviteUser(user: User) {
   if (!activeTab.value) return
-  userChannelsStore.addUserToChannel(user.id, activeTab.value)
+  await userChannelsStore.inviteUser(user.id, activeTab.value)
 }
 
-function kickUser(user: User) {
+async function kickUser(user: User) {
   if (!activeTab.value) return
-  userChannelsStore.removeUserFromChannel(user.id, activeTab.value)
+  await userChannelsStore.kickUser(user.id, activeTab.value)
 }
 
 function banUser(user: User) {

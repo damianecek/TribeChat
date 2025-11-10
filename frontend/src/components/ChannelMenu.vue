@@ -169,13 +169,14 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import type { Channel } from 'src/types'
 import { useAuthStore } from 'stores/auth'
 import { useChannelsStore } from 'stores/channels'
 import { useTabsStore } from 'stores/tabs'
 import { useUserChannelsStore } from 'stores/user_channels'
 import type { UserStatus } from 'src/types/user'
+import { socket } from 'boot/socket'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -234,37 +235,29 @@ function openChannel(channel: Channel) {
   }
 }
 
-
-// vytvorenie nového kanála
 async function addChannel() {
   if (!user.value) return
   const name = newChannelName.value.trim()
   if (!name) return
 
-  try {
-    const res = await fetch('http://localhost:3333/channels', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${auth.token}`,
-      },
-      body: JSON.stringify({
-        channelName: name,
-        isPublic: !newIsPublic.value,
-      }),
-    })
-
-    if (res.ok) {
-      newChannelName.value = ''
-      showAddDialog.value = false
-    } else {
-      console.error('Error creating channel:', await res.text())
-    }
-  } catch (err) {
-    console.error('Create failed:', err)
-  }
+  await channelsStore.createChannel(name, newIsPublic.value)
+  newChannelName.value = ''
+  showAddDialog.value = false
 }
 
+async function saveEdit() {
+  if (!channelBeingEdited.value) return
+  const updatedName = editChannelName.value.trim()
+  if (!updatedName) return
+
+  await channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, editIsPublic.value)
+  showEditDialog.value = false
+}
+
+async function deleteChannel(channel: Channel) {
+  if (!channel?.id) return
+  await channelsStore.deleteChannel(channel.id)
+}
 
 function openEditDialog(channel: Channel) {
   channelBeingEdited.value = channel
@@ -272,56 +265,6 @@ function openEditDialog(channel: Channel) {
   editIsPublic.value = channel.isPublic
   showEditDialog.value = true
 }
-
-
-async function saveEdit() {
-  if (!channelBeingEdited.value) return
-  const updatedName = editChannelName.value.trim()
-  if (!updatedName) return
-
-  try {
-    const res = await fetch(`http://localhost:3333/channels/${channelBeingEdited.value.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${auth.token}`,
-      },
-      body: JSON.stringify({
-        channelName: updatedName,
-        isPublic: editIsPublic.value,
-      }),
-    })
-
-    if (res.ok) {
-      showEditDialog.value = false
-    } else {
-      console.error('Failed to update channel:', await res.text())
-    }
-  } catch (err) {
-    console.error('Update failed:', err)
-  }
-}
-
-async function deleteChannel(channel: Channel) {
-  if (!channel?.id) return
-  try {
-    const res = await fetch(`http://localhost:3333/channels/${channel.id}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${auth.token}`,
-      },
-    })
-    if (res.ok) {
-      // nič nerob, event channel:deleted spraví update
-    } else {
-      console.error('Failed to delete channel:', await res.text())
-    }
-  } catch (err) {
-    console.error('Delete failed:', err)
-  }
-}
-
-
 
 function getStatusColor(status: string): string {
   switch (status.toLowerCase()) {
@@ -333,14 +276,12 @@ function getStatusColor(status: string): string {
   }
 }
 
-function joinChannel(channel: Channel) {
-  if (!user.value) return
-  userChannelsStore.addUserToChannel(user.value.id, channel.id)
+async function joinChannel(channel: Channel) {
+  await userChannelsStore.joinChannel(channel.id)
 }
 
-function leaveChannel(channel: Channel) {
-  if (!user.value) return
-  userChannelsStore.removeUserFromChannel(user.value.id, channel.id)
+async function leaveChannel(channel: Channel) {
+  await userChannelsStore.leaveChannel(channel.id)
 }
 
 function handleScrollLoad(_index: number, done: () => void) {
@@ -354,6 +295,15 @@ onMounted(() => {
   highlightedChannels.value = all
     .sort(() => 0.5 - Math.random())
     .slice(0, count)
+})
+
+watch(status, (newStatus) => {
+  if (auth.user) {
+    socket?.emit('user:status:update', {
+      userId: auth.user.id,
+      status: newStatus,
+    })
+  }
 })
 </script>
 

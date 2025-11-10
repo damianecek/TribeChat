@@ -35,6 +35,18 @@ app.ready(() => {
     socket.on('disconnect', () => {
       console.log('WS client disconnected:', socket.id)
     })
+
+    socket.on('user:status:update', ({ userId, status }) => {
+      io?.emit('user:status:changed', { userId, status })
+    })
+
+    socket.on('user:joined:channel', ({ userId, channelId }) => {
+      io?.emit('userChannel:created', { userId, channelId })
+    })
+
+    socket.on('user:left:channel', ({ userId, channelId }) => {
+      io?.emit('userChannel:removed', { userId, channelId })
+    })
   })
 
   console.log('Socket.IO server initialized')
