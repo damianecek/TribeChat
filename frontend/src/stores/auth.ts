@@ -1,4 +1,3 @@
-// src/stores/auth.ts
 import { defineStore } from 'pinia';
 import { api } from 'boot/axios';
 import type { MeResponse } from 'src/types/auth';
@@ -20,26 +19,22 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    /**
-     * Nastaví token do state, localStorage a axios headera
-     */
     setToken(token: string) {
       this.token = token;
       localStorage.setItem('token', token);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     },
 
-    /**
-     * Fetchne informácie o userovi (/me endpoint)
-     * + následne stiahne všetky dáta potrebné po logine
-     */
     async fetchUser() {
       if (!this.token) return;
       try {
         const res = await api.get<MeResponse>('/me');
         this.user = res.data.user;
 
-        // keď user existuje, načítaj všetky init dáta
+        // 🔗 prepoj s userStore
+        const userStore = useUserStore();
+        userStore.setCurrentUser(res.data.user);
+
         await this.fetchInitialData();
       } catch (err) {
         console.error('Fetch user error:', err);
@@ -48,9 +43,6 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    /**
-     * Inicializačné fetchovanie (channels, user-channels)
-     */
     async fetchInitialData() {
       const channelsStore = useChannelsStore();
       const userChannelsStore = useUserChannelsStore();
@@ -70,9 +62,7 @@ export const useAuthStore = defineStore('auth', {
         console.error('Init fetch error:', err);
       }
     },
-    /**
-     * Odhlásenie a vyčistenie všetkých dát
-     */
+
     async logout() {
       try {
         await api.post('/logout');
@@ -84,11 +74,13 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('token');
         delete api.defaults.headers.common['Authorization'];
 
-        // vyčisti store-y
         const channelsStore = useChannelsStore();
         const userChannelsStore = useUserChannelsStore();
+        const userStore = useUserStore();
+
         channelsStore.setChannels([]);
         userChannelsStore.setUserChannels([]);
+        userStore.clearCurrentUser();
       }
     },
   },

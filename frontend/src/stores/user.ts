@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import type { User } from 'src/types/user';
+import { ref, computed } from 'vue';
+import type { User, UserStatus } from 'src/types/user';
+import { api } from 'boot/axios';
 
 export const useUserStore = defineStore('user', () => {
-
   const currentUser = ref<User | null>(null);
   const users = ref<User[]>([]);
 
+  // nastavenie usera
   function setCurrentUser(user: User) {
     currentUser.value = user;
   }
@@ -15,34 +16,57 @@ export const useUserStore = defineStore('user', () => {
     currentUser.value = null;
   }
 
+  // správa userov v pamäti
   function setUsers(list: User[]) {
     users.value = list;
   }
 
   function addUser(user: User) {
-    const exists = users.value.some((u) => u.id === user.id);
-    if (!exists) users.value.push(user);
+    if (!users.value.some((u) => u.id === user.id)) {
+      users.value.push(user);
+    }
   }
 
-  function updateUser(updated: User) {
-    const idx = users.value.findIndex((u) => u.id === updated.id);
-    if (idx !== -1) users.value[idx] = updated;
+  // aktualizácia statusu
+  function updateUserStatus(userId: number, newStatus: UserStatus) {
+    const u = users.value.find((u) => u.id === userId);
+    if (u) u.status = newStatus;
+    if (currentUser.value?.id === userId) currentUser.value.status = newStatus;
   }
 
-  function removeUser(id: number) {
-    users.value = users.value.filter((u) => u.id !== id);
+  function setCurrentUserStatus(newStatus: UserStatus) {
+    if (currentUser.value) currentUser.value.status = newStatus;
   }
 
-  function findUserByName(nickname: string): User | null {
-    const user = users.value.find((u) => u.nickname === nickname);
-    return user || null;
+  // API volania
+  async function fetchUsers() {
+    try {
+      const res = await api.get<User[]>('/users');
+      setUsers(res.data);
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+    }
   }
 
-  function findUserById(id: number): User | null {
-    const user = users.value.find((u) => u.id === id);
-    return user || null;
+  async function updateStatus(newStatus: UserStatus) {
+    try {
+      await api.patch('/users/status', { status: newStatus });
+      setCurrentUserStatus(newStatus);
+    } catch (err) {
+      console.error('Failed to update user status:', err);
+    }
   }
 
+  // helpers
+  function findUserByName(nickname: string) {
+    return users.value.find((u) => u.nickname === nickname) || null;
+  }
+
+  function findUserById(id: number) {
+    return users.value.find((u) => u.id === id) || null;
+  }
+
+  const getCurrentUser = computed(() => currentUser.value);
 
   return {
     currentUser,
@@ -51,12 +75,14 @@ export const useUserStore = defineStore('user', () => {
     clearCurrentUser,
     setUsers,
     addUser,
-    updateUser,
-    removeUser,
+    updateUserStatus,
+    fetchUsers,
+    updateStatus,
+    setCurrentUserStatus,
     findUserByName,
-    findUserById
+    findUserById,
+    getCurrentUser,
   };
 });
-
 
 export type UserStore = ReturnType<typeof useUserStore>;

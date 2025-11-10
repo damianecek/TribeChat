@@ -88,7 +88,7 @@ export function useChannelActions() {
     const isOwner = !!auth.user && (ch.adminId === auth.user.id)
 
     if (isOwner) {
-      channelsStore.deleteChannel(ch.id)
+      void channelsStore.deleteChannel(ch.id)
     }
 
     tabsApi.closeTab(ch.id)

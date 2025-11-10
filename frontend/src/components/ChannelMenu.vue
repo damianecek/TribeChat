@@ -3,7 +3,6 @@
     <!-- Channel List -->
     <q-list class="channel-list col q-pa-md">
       <q-card class="q-card--bordered q-card--flat column no-shadow fit" :dark="$q.dark.isActive">
-        <!-- Toolbar -->
         <div class="q-pa-sm col-auto row justify-between items-center">
           <div class="text-subtitle5">Channels</div>
           <q-btn icon="add" color="primary" flat dense round size="sm" @click="showAddDialog = true" />
@@ -13,7 +12,6 @@
 
         <q-scroll-area class="col fit">
           <q-infinite-scroll class="channel-menu-element" @load="handleScrollLoad">
-
             <div v-if="myChannels.length" class="q-mt-sm">
               <div class="text-caption text-grey q-pl-sm q-mb-xs">My Channels</div>
 
@@ -83,15 +81,12 @@
                 </q-item-section>
               </q-item>
             </div>
-
           </q-infinite-scroll>
         </q-scroll-area>
-
       </q-card>
     </q-list>
 
-
-    <!-- Profile Box at Bottom -->
+    <!-- 🧍 Profile Box -->
     <div class="q-px-md q-pb-md q-mt-auto">
       <template v-if="isLoggedIn">
         <q-card class="channel-menu-element q-card--bordered q-card--flat no-shadow column" :dark="$q.dark.isActive">
@@ -106,14 +101,13 @@
               <div class="text-caption text-grey">{{ status }}</div>
             </q-item-section>
 
-            <!-- Arrow Button for Status -->
             <q-item-section side>
               <q-btn dense flat round icon="expand_more" @click.stop>
                 <q-menu auto-close class="no-shadow">
                   <q-list>
                     <q-item v-for="s in statusOptions" :key="s" clickable v-close-popup @click="status = s">
                       <q-item-section avatar>
-                        <q-icon name="circle" :style="{ 'color': getStatusColor(s) }" size="14px" />
+                        <q-icon name="circle" :style="{ color: getStatusColor(s) }" size="14px" />
                       </q-item-section>
                       <q-item-section>{{ s }}</q-item-section>
                     </q-item>
@@ -163,13 +157,12 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import type { Channel } from 'src/types'
 import { useAuthStore } from 'stores/auth'
 import { useChannelsStore } from 'stores/channels'
@@ -177,33 +170,33 @@ import { useTabsStore } from 'stores/tabs'
 import { useUserChannelsStore } from 'stores/user_channels'
 import type { UserStatus } from 'src/types/user'
 import { socket } from 'boot/socket'
+import { useUserStore } from 'stores/user'
 
 const router = useRouter()
 const auth = useAuthStore()
 const tabsStore = useTabsStore()
 const channelsStore = useChannelsStore()
 const userChannelsStore = useUserChannelsStore()
+const userStore = useUserStore()
 
 const isLoggedIn = computed(() => auth.isLoggedIn)
-const user = computed(() => auth.user)
+const user = computed(() => userStore.currentUser)
 const channels = computed(() => channelsStore.channels)
 
 const myChannels = computed(() => {
   if (!user.value) return []
-  const userChannelIds = userChannelsStore
-    .userChannels
-    .filter(uc => uc.userId === user.value!.id)
-    .map(uc => uc.channelId)
-  return channels.value.filter(ch => userChannelIds.includes(ch.id))
+  const userChannelIds = userChannelsStore.userChannels
+    .filter((uc) => uc.userId === user.value?.id)
+    .map((uc) => uc.channelId)
+  return channels.value.filter((ch) => userChannelIds.includes(ch.id))
 })
 
 const otherChannels = computed(() => {
   if (!user.value) return channels.value
-  const userChannelIds = userChannelsStore
-    .userChannels
-    .filter(uc => uc.userId === user.value!.id)
-    .map(uc => uc.channelId)
-  return channels.value.filter(ch => !userChannelIds.includes(ch.id))
+  const userChannelIds = userChannelsStore.userChannels
+    .filter((uc) => uc.userId === user.value?.id)
+    .map((uc) => uc.channelId)
+  return channels.value.filter((ch) => !userChannelIds.includes(ch.id))
 })
 
 const showAddDialog = ref(false)
@@ -213,23 +206,41 @@ const editChannelName = ref('')
 const newIsPublic = ref(false)
 const editIsPublic = ref(false)
 const channelBeingEdited = ref<Channel | null>(null)
-const status = ref<UserStatus>('Online')
 
 const statusOptions: UserStatus[] = ['Online', 'Away', 'Offline', 'DND']
 
-const goProfile = async () => {
-  await router.push('/profile')
+function setStatus(newStatus: UserStatus) {
+  if (!user.value) return
+  userStore.updateUserStatus(user.value.id, newStatus)
+  socket?.emit('user:setStatus', { status: newStatus })
+  void userStore.updateStatus(newStatus)
 }
 
+const status = computed<UserStatus>({
+  get: () => user.value?.status || 'Offline',
+  set: (newStatus) => setStatus(newStatus),
+})
+
+function getStatusColor(status: UserStatus): string {
+  switch (status) {
+    case 'Online': return 'limegreen'
+    case 'Away': return 'gold'
+    case 'DND': return 'orangered'
+    case 'Offline': return 'gray'
+    default: return 'lightgray'
+  }
+}
+
+const goProfile = async () => router.push('/profile')
+
 function openChannel(channel: Channel) {
-  const existing = tabsStore.tabs.find(t => t.id === channel.id)
-  if (existing) {
-    tabsStore.setActiveTab(existing.id)
-  } else {
+  const existing = tabsStore.tabs.find((t) => t.id === channel.id)
+  if (existing) tabsStore.setActiveTab(existing.id)
+  else {
     tabsStore.addTab({
       id: channel.id,
       label: channel.channelName,
-      content: `Welcome to #${channel.channelName}!`
+      content: `Welcome to #${channel.channelName}!`,
     })
     tabsStore.setActiveTab(channel.id)
   }
@@ -239,7 +250,6 @@ async function addChannel() {
   if (!user.value) return
   const name = newChannelName.value.trim()
   if (!name) return
-
   await channelsStore.createChannel(name, newIsPublic.value)
   newChannelName.value = ''
   showAddDialog.value = false
@@ -249,7 +259,6 @@ async function saveEdit() {
   if (!channelBeingEdited.value) return
   const updatedName = editChannelName.value.trim()
   if (!updatedName) return
-
   await channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, editIsPublic.value)
   showEditDialog.value = false
 }
@@ -266,16 +275,6 @@ function openEditDialog(channel: Channel) {
   showEditDialog.value = true
 }
 
-function getStatusColor(status: string): string {
-  switch (status.toLowerCase()) {
-    case 'online': return 'limegreen'
-    case 'away': return 'gold'
-    case 'dnd': return 'orangered'
-    case 'offline': return 'gray'
-    default: return 'lightgray'
-  }
-}
-
 async function joinChannel(channel: Channel) {
   await userChannelsStore.joinChannel(channel.id)
 }
@@ -290,22 +289,16 @@ function handleScrollLoad(_index: number, done: () => void) {
 
 const highlightedChannels = ref<string[]>([])
 onMounted(() => {
-  const all = channelsStore.channels.map(c => c.id)
-  const count = Math.min(5, all.length)
-  highlightedChannels.value = all
-    .sort(() => 0.5 - Math.random())
-    .slice(0, count)
-})
-
-watch(status, (newStatus) => {
-  if (auth.user) {
-    socket?.emit('user:status:update', {
-      userId: auth.user.id,
-      status: newStatus,
-    })
+  if (!userStore.currentUser && auth.user) {
+    userStore.setCurrentUser(auth.user)
   }
+
+  const all = channelsStore.channels.map((c) => c.id)
+  const count = Math.min(5, all.length)
+  highlightedChannels.value = all.sort(() => 0.5 - Math.random()).slice(0, count)
 })
 </script>
+
 
 <style scoped>
 .channel-menu-root {

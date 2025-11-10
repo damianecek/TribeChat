@@ -30,7 +30,7 @@ router
   .group(() => {
     router.get('/', [UsersController, 'index'])
     // router.get('/:id', [UsersController, 'show'])
-    // router.patch('/status', [UsersController, 'updateStatus'])
+    router.patch('/status', [UsersController, 'updateStatus'])
     // router.patch('/:id', [UsersController, 'update'])
     // router.delete('/:id', [UsersController, 'destroy'])
   })

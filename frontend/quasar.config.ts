@@ -14,6 +14,7 @@ export default defineConfig((/* ctx */) => {
     boot: [
       'axios',
       'pinia',
+      'auth',
       'socket'
     ],
 
