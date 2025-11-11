@@ -1,4 +1,3 @@
-// src/boot/socket.ts
 import { boot } from 'quasar/wrappers';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
@@ -17,99 +16,112 @@ export default boot(() => {
   const userStore = useUserStore();
 
   function connectSocket() {
-    // už pripojený?
-    if (socket) {
-      console.log('⚠️ Socket already connected, skipping...');
-      return;
-    }
+    if (socket) return;
+    if (!auth.token) return;
 
-    // musí existovať token (a user je ideálne už načítaný cez boot/auth.ts)
-    if (!auth.token) {
-      console.warn('❌ Missing token, skipping socket connection.');
-      return;
-    }
-
-    console.log('🟢 Connecting socket with token:', auth.token.slice(0, 10) + '...');
+    console.log('🟢 Connecting socket...');
 
     socket = io('http://localhost:3333', {
       auth: { token: auth.token },
     });
 
-    // po pripojení – init fetch kanálov cez WS
+    // === CONNECTION ===
     socket.on('connect', () => {
       console.log('✅ WS connected:', socket?.id);
       socket?.emit('request:channels');
+
+      // 🔁 Rejoin all channels where the user is member
+      const userId = auth.user?.id;
+      if (userId) {
+        const userChannels = userChannelsStore.getChannelsForUser(userId);
+        userChannels.forEach((cid) => socket?.emit('member:join', cid));
+      }
     });
 
-    socket.on('disconnect', (reason: string) => {
+    socket.on('disconnect', (reason) => {
       console.log('🔴 WS disconnected:', reason);
       socket = null;
     });
 
-    // --- USER STATUS (Online / Away / DND / Offline) ---
-    socket.on('user:status', (payload: { userId: number; status: UserStatus }) => {
-      userStore.updateUserStatus(payload.userId, payload.status);
-
-      // ak ide o aktuálne prihláseného usera, syncni aj currentUser + auth.user
-      if (userStore.currentUser?.id === payload.userId) {
-        userStore.setCurrentUserStatus(payload.status);
+    // === USER STATUS (Online / Offline / Away / DND) ===
+    socket.on('user:status', ({ userId, status }: { userId: number; status: UserStatus }) => {
+      userStore.updateUserStatus(userId, status);
+      if (userStore.currentUser?.id === userId) {
+        userStore.setCurrentUserStatus(status);
       }
-      if (auth.user?.id === payload.userId) {
-        auth.user.status = payload.status;
+      if (auth.user?.id === userId) {
+        auth.user.status = status;
       }
     });
 
-    // --- USER-CHANNEL MEMBERSHIP ---
-    socket.on(
-      'userChannel:created',
-      ({ userId, channelId }: { userId: number; channelId: string }) => {
-        userChannelsStore.addUserToChannel(userId, channelId);
-      },
-    );
-
-    socket.on(
-      'userChannel:removed',
-      ({ userId, channelId }: { userId: number; channelId: string }) => {
-        userChannelsStore.removeUserFromChannel(userId, channelId);
-      },
-    );
-
-    // --- CHANNELS (realtime CRUD) ---
+    // === CHANNEL CRUD EVENTS ===
     socket.on('response:channels', (channels: Channel[]) => {
       channelsStore.setChannels(channels);
     });
 
     socket.on('channel:created', (channel: Channel) => {
-      console.log('🆕 nový kanál:', channel);
+      console.log('🆕 Channel created via WS:', channel.channelName);
       channelsStore.addChannel(channel);
+      if (auth.user && channel.adminId === auth.user.id) {
+        userChannelsStore.addUserToChannel(auth.user.id, channel.id);
+      }
     });
 
     socket.on('channel:updated', (channel: Channel) => {
-      void channelsStore.updateChannel(channel.id, channel.channelName, channel.isPublic);
+      channelsStore.updateChannelLocal(channel.id, channel.channelName, channel.isPublic);
     });
 
     socket.on('channel:deleted', (id: string) => {
-      void channelsStore.deleteChannel(id);
+      channelsStore.deleteChannelLocal(id);
+    });
+
+    // === MEMBERSHIP EVENTS ===
+    socket.on(
+      'member:joined',
+      ({ userId, channelId, id }: { userId: number; channelId: string; id: string }) => {
+        console.log(`🟢 member:joined user:${userId} -> channel:${channelId}`);
+        userChannelsStore.addUserToChannel(userId, channelId, id);
+      },
+    );
+
+    socket.on('member:left', ({ userId, channelId }: { userId: number; channelId: string }) => {
+      console.log(`🔵 member:left user:${userId} <- channel:${channelId}`);
+      userChannelsStore.removeUserFromChannel(userId, channelId);
+    });
+
+    socket.on(
+      'member:invited',
+      ({ userId, channelId, id }: { userId: number; channelId: string; id: string }) => {
+        console.log(`🟢 member:invited user:${userId} -> channel:${channelId}`);
+        userChannelsStore.addUserToChannel(userId, channelId, id);
+      },
+    );
+
+    socket.on('member:kicked', ({ userId, channelId }: { userId: number; channelId: string }) => {
+      console.log(`🔴 member:kicked user:${userId} from channel:${channelId}`);
+      userChannelsStore.removeUserFromChannel(userId, channelId);
+    });
+
+    // === ERROR HANDLING ===
+    socket.on('error:channel', (payload: { message: string }) => {
+      console.warn('⚠️ Channel error:', payload.message);
+    });
+    socket.on('error:member', (payload: { message: string }) => {
+      console.warn('⚠️ Member error:', payload.message);
     });
   }
 
-  // Reakcia na zmeny v auth stor-e
+  // === Auth watch ===
   auth.$subscribe((_, state) => {
-    if (state.token && !socket) {
-      connectSocket();
-    }
-
+    if (state.token && !socket) connectSocket();
     if (!state.token && socket) {
-      console.log('🔴 Disconnecting socket due to logout...');
+      console.log('🔴 Disconnecting socket (logout)...');
       socket.disconnect();
       socket = null;
     }
   });
 
-  // pri prvom loade (napr. reload po prihlásení)
-  if (auth.token && !socket) {
-    connectSocket();
-  }
+  if (auth.token && !socket) connectSocket();
 });
 
 export { socket };

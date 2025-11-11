@@ -246,26 +246,26 @@ function openChannel(channel: Channel) {
   }
 }
 
-async function addChannel() {
+function addChannel() {
   if (!user.value) return
   const name = newChannelName.value.trim()
   if (!name) return
-  await channelsStore.createChannel(name, newIsPublic.value)
+  channelsStore.createChannel(name, newIsPublic.value)
   newChannelName.value = ''
   showAddDialog.value = false
 }
 
-async function saveEdit() {
+function saveEdit() {
   if (!channelBeingEdited.value) return
   const updatedName = editChannelName.value.trim()
   if (!updatedName) return
-  await channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, editIsPublic.value)
+  channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, editIsPublic.value)
   showEditDialog.value = false
 }
 
-async function deleteChannel(channel: Channel) {
+function deleteChannel(channel: Channel) {
   if (!channel?.id) return
-  await channelsStore.deleteChannel(channel.id)
+  channelsStore.deleteChannel(channel.id)
 }
 
 function openEditDialog(channel: Channel) {
@@ -275,12 +275,12 @@ function openEditDialog(channel: Channel) {
   showEditDialog.value = true
 }
 
-async function joinChannel(channel: Channel) {
-  await userChannelsStore.joinChannel(channel.id)
+function joinChannel(channel: Channel) {
+  userChannelsStore.joinChannel(channel.id)
 }
 
-async function leaveChannel(channel: Channel) {
-  await userChannelsStore.leaveChannel(channel.id)
+function leaveChannel(channel: Channel) {
+  userChannelsStore.leaveChannel(channel.id)
 }
 
 function handleScrollLoad(_index: number, done: () => void) {

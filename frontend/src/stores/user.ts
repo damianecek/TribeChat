@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { User, UserStatus } from 'src/types/user';
+import { socket } from 'boot/socket';
 import { api } from 'boot/axios';
 
 export const useUserStore = defineStore('user', () => {
   const currentUser = ref<User | null>(null);
   const users = ref<User[]>([]);
 
-  // nastavenie usera
   function setCurrentUser(user: User) {
     currentUser.value = user;
   }
@@ -16,7 +16,6 @@ export const useUserStore = defineStore('user', () => {
     currentUser.value = null;
   }
 
-  // správa userov v pamäti
   function setUsers(list: User[]) {
     users.value = list;
   }
@@ -27,7 +26,6 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  // aktualizácia statusu
   function updateUserStatus(userId: number, newStatus: UserStatus) {
     const u = users.value.find((u) => u.id === userId);
     if (u) u.status = newStatus;
@@ -38,7 +36,6 @@ export const useUserStore = defineStore('user', () => {
     if (currentUser.value) currentUser.value.status = newStatus;
   }
 
-  // API volania
   async function fetchUsers() {
     try {
       const res = await api.get<User[]>('/users');
@@ -48,23 +45,16 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  async function updateStatus(newStatus: UserStatus) {
-    try {
-      await api.patch('/users/status', { status: newStatus });
-      setCurrentUserStatus(newStatus);
-    } catch (err) {
-      console.error('Failed to update user status:', err);
-    }
+  // === WebSocket-based status update ===
+  function updateStatus(newStatus: UserStatus) {
+    if (!currentUser.value) return;
+    socket?.emit('user:setStatus', { status: newStatus });
   }
 
-  // helpers
-  function findUserByName(nickname: string) {
-    return users.value.find((u) => u.nickname === nickname) || null;
-  }
+  const findUserByName = (nickname: string) =>
+    users.value.find((u) => u.nickname === nickname) || null;
 
-  function findUserById(id: number) {
-    return users.value.find((u) => u.id === id) || null;
-  }
+  const findUserById = (id: number) => users.value.find((u) => u.id === id) || null;
 
   const getCurrentUser = computed(() => currentUser.value);
 

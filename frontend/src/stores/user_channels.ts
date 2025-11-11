@@ -1,10 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import { useAuthStore } from 'stores/auth';
+import { socket } from 'boot/socket';
 import type { UserChannel } from 'src/types/user_channel';
 
 export const useUserChannelsStore = defineStore('userChannels', () => {
-  const auth = useAuthStore();
   const userChannels = ref<{ id: string; userId: number; channelId: string }[]>([]);
 
   function setUserChannels(newUserChannels: UserChannel[]) {
@@ -20,11 +19,7 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
       (uc) => uc.userId === userId && uc.channelId === channelId,
     );
     if (!exists) {
-      userChannels.value.push({
-        id: id || crypto.randomUUID(),
-        userId,
-        channelId,
-      });
+      userChannels.value.push({ id: id || crypto.randomUUID(), userId, channelId });
     }
   }
 
@@ -34,92 +29,40 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     );
   }
 
-  async function joinChannel(channelId: string) {
-    if (!auth.user) return;
-
-    try {
-      const res = await fetch('http://localhost:3333/user-channels', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.token}`,
-        },
-        body: JSON.stringify({
-          userId: auth.user.id,
-          channelId,
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        addUserToChannel(data.userId, data.channelId, data.id);
-      } else {
-        console.error('Join failed:', await res.text());
-      }
-    } catch (err) {
-      console.error('Join error:', err);
-    }
+  // === WebSocket actions ===
+  function joinChannel(channelId: string) {
+    socket?.emit('member:join', channelId);
   }
 
-  async function leaveChannel(channelId: string) {
-    if (!auth.user) return;
-
-    const link = userChannels.value.find(
-      (uc) => uc.userId === auth.user!.id && uc.channelId === channelId,
-    );
-    if (!link) return;
-
-    try {
-      const res = await fetch(`http://localhost:3333/user-channels/${link.id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${auth.token}`,
-        },
-      });
-
-      if (res.ok) {
-        removeUserFromChannel(auth.user.id, channelId);
-      } else {
-        console.error('Leave failed:', await res.text());
-      }
-    } catch (err) {
-      console.error('Leave error:', err);
-    }
+  function leaveChannel(channelId: string) {
+    socket?.emit('member:leave', channelId);
   }
 
-  async function inviteUser(userId: number, channelId: string) {
-    try {
-      const res = await fetch('http://localhost:3333/user-channels', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.token}`,
-        },
-        body: JSON.stringify({ userId, channelId }),
-      });
-      if (!res.ok) console.error('Invite failed:', await res.text());
-    } catch (err) {
-      console.error('Invite error:', err);
-    }
+  function inviteUser(userId: number, channelId: string) {
+    socket?.emit('member:invite', { userId, channelId });
   }
 
-  async function kickUser(userId: number, channelId: string) {
-    const link = userChannels.value.find(
-      (uc) => uc.userId === userId && uc.channelId === channelId,
-    );
-    if (!link) return;
+  function kickUser(targetId: number, channelId: string) {
+    socket?.emit('member:kick', { targetId, channelId });
+  }
 
-    try {
-      const res = await fetch(`http://localhost:3333/user-channels/${link.id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${auth.token}`,
-        },
-      });
-      if (!res.ok) console.error('Kick failed:', await res.text());
-    } catch (err) {
-      console.error('Kick error:', err);
-    }
+  // === Listeners ===
+  if (socket) {
+    socket.on('member:joined', (payload: { userId: number; channelId: string; id: string }) => {
+      addUserToChannel(payload.userId, payload.channelId, payload.id);
+    });
+
+    socket.on('member:left', ({ userId, channelId }) => {
+      removeUserFromChannel(userId, channelId);
+    });
+
+    socket.on('member:invited', (payload: { userId: number; channelId: string; id: string }) => {
+      addUserToChannel(payload.userId, payload.channelId, payload.id);
+    });
+
+    socket.on('member:kicked', ({ userId, channelId }) => {
+      removeUserFromChannel(userId, channelId);
+    });
   }
 
   return {
@@ -127,16 +70,14 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     setUserChannels,
     addUserToChannel,
     removeUserFromChannel,
-    getChannelsForUser: (userId: number) =>
-      userChannels.value.filter((uc) => uc.userId === userId).map((uc) => uc.channelId),
-    getUsersInChannel: (channelId: string) =>
-      userChannels.value.filter((uc) => uc.channelId === channelId).map((uc) => uc.userId),
-
-    // nové API
     joinChannel,
     leaveChannel,
     inviteUser,
     kickUser,
+    getChannelsForUser: (userId: number) =>
+      userChannels.value.filter((uc) => uc.userId === userId).map((uc) => uc.channelId),
+    getUsersInChannel: (channelId: string) =>
+      userChannels.value.filter((uc) => uc.channelId === channelId).map((uc) => uc.userId),
   };
 });
 

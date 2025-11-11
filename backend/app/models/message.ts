@@ -1,15 +1,21 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
+import { BaseModel, beforeCreate, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import Channel from './channel.js'
 import User from './user.js'
+import { randomUUID } from 'node:crypto'
 
 export default class Message extends BaseModel {
   @column({ isPrimary: true })
   declare id: string
 
+  @beforeCreate()
+  static assignUuid(message: Message) {
+    message.id = randomUUID()
+  }
+
   @column()
-  declare channelId: number
+  declare channelId: string
 
   @belongsTo(() => Channel)
   declare channel: BelongsTo<typeof Channel>

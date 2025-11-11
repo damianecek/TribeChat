@@ -1,5 +1,5 @@
 export interface Tab {
   id: string
   label: string
-  content: string
+  content?: string
 }

@@ -27,7 +27,6 @@
               <q-btn dense flat round icon="more_vert" @click.stop>
                 <q-menu auto-close class="no-shadow">
                   <q-list style="min-width: 130px">
-                    <!-- Profile -->
                     <q-item clickable v-close-popup @click="openProfile(userItem)">
                       <q-item-section>Profile</q-item-section>
                     </q-item>
@@ -42,7 +41,7 @@
                       <q-item-section class="text-negative">Ban</q-item-section>
                     </q-item>
 
-                    <q-item v-else-if="!isOwner" clickable v-close-popup @click="voteBanUser(userItem)">
+                    <q-item v-else clickable v-close-popup @click="voteBanUser(userItem)">
                       <q-item-section class="text-negative">Vote Ban</q-item-section>
                     </q-item>
                   </q-list>
@@ -71,17 +70,14 @@
               <q-btn dense flat round icon="more_vert" @click.stop>
                 <q-menu auto-close class="no-shadow">
                   <q-list style="min-width: 130px">
-                    <!-- Profile -->
                     <q-item clickable v-close-popup @click="openProfile(userItem)">
                       <q-item-section>Profile</q-item-section>
                     </q-item>
 
-                    <!-- Invite -->
                     <q-item clickable v-close-popup @click="inviteUser(userItem)">
                       <q-item-section class="text-positive">Invite</q-item-section>
                     </q-item>
 
-                    <!-- Owner can ban -->
                     <q-item v-if="isOwner" clickable v-close-popup @click="banUser(userItem)">
                       <q-item-section class="text-negative">Ban</q-item-section>
                     </q-item>
@@ -104,6 +100,7 @@ import { useUserChannelsStore } from 'stores/user_channels'
 import { useUserStore } from 'stores/user'
 import { useTabsStore } from 'stores/tabs'
 import { useAuthStore } from 'stores/auth'
+import { socket } from 'boot/socket'
 import type { User } from 'src/types/user'
 
 const router = useRouter()
@@ -113,46 +110,49 @@ const userChannelsStore = useUserChannelsStore()
 const userStore = useUserStore()
 const auth = useAuthStore()
 
-const activeTab = computed(() => tabsStore.activeTab)
-const users = userStore.users
+const activeChannelId = computed(() => tabsStore.activeTab?.id || '')
+const users = computed(() => userStore.users)
 
 const isOwner = computed(() => {
-  const ch = channelsStore.channels.find(ch => ch.id === activeTab.value)
+  const ch = channelsStore.channels.find(ch => ch.id === activeChannelId.value)
   return ch?.adminId === auth.user?.id
 })
 
 const usersInChannel = computed(() => {
-  const uc = userChannelsStore.userChannels
-    .filter(link => link.channelId === activeTab.value)
+  const memberIds = userChannelsStore
+    .userChannels
+    .filter(link => link.channelId === activeChannelId.value)
     .map(link => link.userId)
-  return users.filter(u => uc.includes(u.id))
+  return userStore.users.filter(u => memberIds.includes(u.id))
 })
 
 const otherUsers = computed(() => {
   const inIds = usersInChannel.value.map(u => u.id)
-  return users.filter(u => !inIds.includes(u.id))
+  return userStore.users.filter(u => !inIds.includes(u.id))
 })
 
 async function openProfile(user: User) {
   await router.push(`/profile/${user.id}`)
 }
 
-async function inviteUser(user: User) {
-  if (!activeTab.value) return
-  await userChannelsStore.inviteUser(user.id, activeTab.value)
+function inviteUser(user: User) {
+  if (!activeChannelId.value) return
+  socket?.emit('channel:join', activeChannelId.value)
+  socket?.emit('user:joined:channel', { userId: user.id, channelId: activeChannelId.value })
 }
 
-async function kickUser(user: User) {
-  if (!activeTab.value) return
-  await userChannelsStore.kickUser(user.id, activeTab.value)
+function kickUser(user: User) {
+  if (!activeChannelId.value) return
+  socket?.emit('channel:leave', activeChannelId.value)
+  socket?.emit('user:left:channel', { userId: user.id, channelId: activeChannelId.value })
 }
 
 function banUser(user: User) {
-  console.log(`Ban ${user.firstName}`)
+  console.log(`🚫 Ban ${user.firstName}`)
 }
 
 function voteBanUser(user: User) {
-  console.log(`Vote ban for ${user.firstName}`)
+  console.log(`⚖️ Vote ban for ${user.firstName}`)
 }
 
 function getStatusColor(status: string): string {
@@ -165,6 +165,7 @@ function getStatusColor(status: string): string {
   }
 }
 </script>
+
 
 <style scoped>
 .body--light .member-drawer-root {
