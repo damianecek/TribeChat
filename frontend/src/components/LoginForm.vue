@@ -14,10 +14,10 @@
       </q-banner>
 
       <q-form @submit.prevent="onSubmit" class="q-gutter-md">
-        <q-input v-model="uid" label="email/nickname" outlined dense :disable="loading"
+        <q-input v-model="credentials.uid" label="email/nickname" outlined dense :disable="loading"
           :rules="[val => !!val || 'necesarry field!']" />
 
-        <q-input v-model="password" label="passwrd" type="password" outlined dense :disable="loading"
+        <q-input v-model="credentials.password" label="passwrd" type="password" outlined dense :disable="loading"
           :rules="[val => !!val || 'necesarry field!']" />
 
         <div class="row justify-center">
@@ -38,34 +38,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from 'stores/auth'
-import { api } from 'boot/axios'
-import type { UserStatus } from 'src/types'
+import { useAuthStore } from 'src/stores/auth'
 
-interface LoginResponse {
-  user: {
-    id: number
-    firstName: string
-    lastName: string
-    nickname: string
-    email: string
-    status: UserStatus
-    createdAt: Date
-    updatedAt: Date
-  }
-  token: {
-    type: string
-    token: string
-    expiresAt: string
-  }
-}
+import type { LoginCredentials } from 'src/types/auth'
 
-const uid = ref('')
-const password = ref('')
+
+const credentials = ref({
+  uid: '',
+  password: '',
+} as LoginCredentials)
+
+
 const router = useRouter()
-const loading = ref(false)
+const loading = computed(() => auth.initialized && !auth.user && !!auth.token)
 const errorMessage = ref('')
 const auth = useAuthStore()
 
@@ -75,28 +62,14 @@ const clearError = () => {
 
 async function onSubmit() {
   try {
-    loading.value = true
     errorMessage.value = ''
 
-    const res = await api.post<LoginResponse>('/login', {
-      uid: uid.value,
-      password: password.value,
-    })
-
-    const { token, user } = res.data
-
-    auth.setToken(token.token)
-
-    auth.user = user
-
-    await auth.fetchInitialData()
+    await auth.login(credentials.value)
 
     await router.push('/main')
   } catch (err) {
     console.error('Login error:', err)
     errorMessage.value = 'Prihlásenie zlyhalo. Skontroluj údaje a skús znova.'
-  } finally {
-    loading.value = false
   }
 }
 </script>

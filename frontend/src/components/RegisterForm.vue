@@ -15,7 +15,7 @@
 
       <q-form @submit.prevent="onSubmit" class="q-gutter-md">
         <q-input
-          v-model="firstName"
+          v-model="registerData.firstName"
           label="name"
           outlined
           dense
@@ -23,7 +23,7 @@
           :rules="[val => !!val || 'Pole je povinné']"
         />
         <q-input
-          v-model="lastName"
+          v-model="registerData.lastName"
           label="lastname"
           outlined
           dense
@@ -31,7 +31,7 @@
           :rules="[val => !!val || 'Pole je povinné']"
         />
         <q-input
-          v-model="nickname"
+          v-model="registerData.nickname"
           label="nickname"
           outlined
           dense
@@ -39,7 +39,7 @@
           :rules="[val => !!val || 'Pole je povinné']"
         />
         <q-input
-          v-model="email"
+          v-model="registerData.email"
           label="email"
           type="email"
           outlined
@@ -48,7 +48,7 @@
           :rules="[val => !!val || 'Pole je povinné']"
         />
         <q-input
-          v-model="password"
+          v-model="registerData.password"
           label="passwrd"
           type="password"
           outlined
@@ -84,18 +84,22 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { api } from 'boot/axios'
-import type { AuthResponse } from 'src/types/auth'
+import { useAuthStore } from 'src/stores/auth'
+import type { RegisterData } from 'src/types/auth'
 
 
-const firstName = ref('')
-const lastName = ref('')
-const nickname = ref('')
-const email = ref('')
-const password = ref('')
 const router = useRouter()
 const loading = ref(false)
 const errorMessage = ref('')
+const auth = useAuthStore()
+
+const registerData = ref<RegisterData>({
+  firstName: '',
+  lastName: '',
+  nickname: '',
+  email: '',
+  password: '',
+} as RegisterData)
 
 const clearError = () => {
   errorMessage.value = ''
@@ -106,18 +110,7 @@ async function onSubmit() {
     loading.value = true
     errorMessage.value = ''
 
-    const res = await api.post<AuthResponse>('/register', {
-      firstName: firstName.value,
-      lastName: lastName.value,
-      nickname: nickname.value,
-      email: email.value,
-      password: password.value,
-    })
-
-    const { token } = res.data
-    // uložiť token
-    localStorage.setItem('token', token.token)
-    api.defaults.headers.common['Authorization'] = `Bearer ${token.token}`
+    await auth.register(registerData.value)
 
     // redirect
     await router.push('/profile')

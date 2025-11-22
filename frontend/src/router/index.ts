@@ -1,6 +1,5 @@
 import { defineRouter } from '#q-app/wrappers'
 import { createMemoryHistory, createRouter, createWebHashHistory, createWebHistory } from 'vue-router'
-import { useAuthStore } from 'src/stores/auth'
 import routes from './routes'
 
 /*
@@ -29,28 +28,7 @@ export default defineRouter(function (/* { store, ssrContext } */) {
     history: createHistory(process.env.VUE_ROUTER_BASE),
   })
 
-  router.beforeEach(async (to, from, next) => {
-    const auth = useAuthStore()
 
-    if (to.path === '/' && auth.isLoggedIn) {
-      return next('/main')
-    }
-
-    if (to.meta.requiresAuth) {
-      if (!auth.isLoggedIn) {
-        try {
-          await auth.fetchUser() // calls /me
-          next()
-        } catch {
-          next('/')
-        }
-      } else {
-        next()
-      }
-    } else {
-      next()
-    }
-  })
 
   return router
 })
