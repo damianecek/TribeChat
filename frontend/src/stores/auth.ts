@@ -50,6 +50,7 @@ export const useAuthStore = defineStore('auth', {
 
     async isAuthenticated(): Promise<boolean> {
       if (this.user) {
+        console.log('User already authenticated')
         return true
       }
 
@@ -144,6 +145,7 @@ export const useAuthStore = defineStore('auth', {
         console.error('Logout request failed:', err)
       } finally {
         authManager.removeToken()
+        this.handleLogout()
       }
     },
 
@@ -151,6 +153,7 @@ export const useAuthStore = defineStore('auth', {
     handleLogout() {
       this.token = null
       this.user = null
+      console.log('User logged out, cleared auth store ' + this.user)
 
       delete api.defaults.headers.common['Authorization']
 

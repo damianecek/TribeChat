@@ -1,20 +1,12 @@
 import { boot } from 'quasar/wrappers'
 import { useAuthStore } from 'stores/auth'
-import type { RouteLocationNormalized, RouteLocationRaw } from 'vue-router'
 
 declare module 'vue-router' {
   interface RouteMeta {
-    requiresAuth?: boolean,
-    guestOnly?: boolean
+    requiresAuth?: boolean
   }
 }
 
-const loginRoute = (from: RouteLocationNormalized): RouteLocationRaw => {
-  return {
-    name: 'login',
-    query: { redirect: from.fullPath }
-  }
-}
 
 export default boot(async ({router}) => {
   const authStore = useAuthStore()
@@ -26,7 +18,11 @@ export default boot(async ({router}) => {
     // route requires authentication
     if (to.meta.requiresAuth && !isAuthenticated) {
       // check if logged in if not, redirect to login page
-      return loginRoute(to)
+      return await router.push('/login')
+
+    }
+    else if (!to.meta.requiresAuth && isAuthenticated){
+      return await router.push('/main')
     }
   })
 })
