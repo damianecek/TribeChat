@@ -4,13 +4,14 @@ import { socket } from 'boot/socket';
 import type { UserChannel } from 'src/types/user_channel';
 
 export const useUserChannelsStore = defineStore('userChannels', () => {
-  const userChannels = ref<{ id: string; userId: number; channelId: string }[]>([]);
+  const userChannels = ref<{ id: string; userId: number; channelId: string, hasUnread: boolean }[]>([]);
 
   function setUserChannels(newUserChannels: UserChannel[]) {
     userChannels.value = newUserChannels.map((uc) => ({
       id: uc.id,
       userId: uc.userId,
       channelId: uc.channelId,
+      hasUnread: false,
     }));
   }
 
@@ -19,7 +20,7 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
       (uc) => uc.userId === userId && uc.channelId === channelId,
     );
     if (!exists) {
-      userChannels.value.push({ id: id || crypto.randomUUID(), userId, channelId });
+      userChannels.value.push({ id: id || crypto.randomUUID(), userId, channelId, hasUnread: false });
     }
   }
 
@@ -27,6 +28,26 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     userChannels.value = userChannels.value.filter(
       (uc) => !(uc.userId === userId && uc.channelId === channelId),
     );
+  }
+
+  function markUnread(channelId: string, userId: number) {
+    const channel = userChannels.value.find(
+      c => c.channelId === channelId && c.userId === userId
+    );
+
+    if (channel) {
+      channel.hasUnread = true;
+    }
+  }
+
+  function clearUnread(channelId: string, userId: number) {
+    const channel = userChannels.value.find(
+      c => c.channelId === channelId && c.userId === userId
+    );
+
+    if (channel) {
+      channel.hasUnread = false;
+    }
   }
 
   // === WebSocket actions ===
@@ -74,6 +95,8 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     leaveChannel,
     inviteUser,
     kickUser,
+    markUnread,
+    clearUnread,
     getChannelsForUser: (userId: number) =>
       userChannels.value.filter((uc) => uc.userId === userId).map((uc) => uc.channelId),
     getUsersInChannel: (channelId: string) =>

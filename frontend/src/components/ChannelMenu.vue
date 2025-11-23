@@ -17,7 +17,7 @@
 
               <q-item v-for="channel in myChannels" :key="channel.id" clickable
                 class="channel-menu-element items-center"
-                :class="{ 'channel-highlight': highlightedChannels.includes(channel.id) }"
+                :class="{ 'channel-highlight': hasUnread(channel.id) }"
                 @click="openChannel(channel)">
                 <q-item-section>
                   <div class="row items-center no-wrap">
@@ -287,16 +287,21 @@ function handleScrollLoad(_index: number, done: () => void) {
   done()
 }
 
-const highlightedChannels = ref<string[]>([])
 onMounted(() => {
   if (!userStore.currentUser && auth.user) {
     userStore.setCurrentUser(auth.user)
   }
-
-  const all = channelsStore.channels.map((c) => c.id)
-  const count = Math.min(5, all.length)
-  highlightedChannels.value = all.sort(() => 0.5 - Math.random()).slice(0, count)
 })
+
+const hasUnread = (channelId: string) => {
+  if (!user.value ) return false;
+
+  const entry = userChannelsStore.userChannels.find(
+    (uc) => uc.channelId === channelId && uc.userId === user.value?.id
+  );
+
+  return entry?.hasUnread === true;
+};
 </script>
 
 

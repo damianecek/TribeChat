@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { Tab } from 'src/types';
+import { useUserChannelsStore } from 'stores/user_channels'
+import { useUserStore } from 'stores/user'
 
 export const useTabsStore = defineStore('tabs', () => {
   const tabs = ref<Tab[]>([]);
@@ -27,6 +29,19 @@ export const useTabsStore = defineStore('tabs', () => {
   function setActiveTab(id: string) {
     const tab = tabs.value.find((t) => t.id === id) || null;
     activeTab.value = tab;
+
+    // --- Clear unread for channels ---
+    const userId = useUserStore().currentUser?.id;
+    if (!userId || !tab) return;
+
+    const userChannelsStore = useUserChannelsStore();
+    const isChannel = userChannelsStore.userChannels.some(
+      (uc) => uc.channelId === id && uc.userId === userId
+    );
+
+    if (isChannel) {
+      userChannelsStore.clearUnread(id, userId);
+    }
   }
 
   return { tabs, activeTab, addTab, closeTab, setActiveTab };

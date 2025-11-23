@@ -3,6 +3,11 @@ import { ref } from 'vue';
 import type { chatMessage } from 'src/types/message';
 import { socket } from 'boot/socket';
 import { useAuthStore } from 'stores/auth';
+import { useTabsStore } from 'stores/tabs';
+import { useChannelsStore } from 'stores/channels';
+import { useUserChannelsStore } from 'stores/user_channels';
+import { Notify } from 'quasar';
+
 
 interface ServerMessage {
   id: string;
@@ -16,6 +21,9 @@ interface ServerMessage {
 export const useMessagesStore = defineStore('messages', () => {
   const messages = ref<chatMessage[]>([]);
   const auth = useAuthStore();
+  const tabsStore = useTabsStore();
+  const channelsStore = useChannelsStore();
+  const userChannelsStore = useUserChannelsStore();
 
   function addMessage(msg: chatMessage) {
     // ✅ Nepridávaj duplicitné správy (rovnaké id)
@@ -57,20 +65,48 @@ export const useMessagesStore = defineStore('messages', () => {
     socket.emit('message:fetch', channelId);
   }
 
+  function truncate(str: string, max: number = 15) {
+    return str.length > max ? str.slice(0, max) + "..." : str;
+  }
+
   if (socket) {
     socket.on('message:new', (msg: ServerMessage) => {
       const currentUserId = Number(auth.user?.id);
       const authorId = Number(msg.authorId);
 
-      addMessage({
+      const messageData = {
         id: msg.id,
         chatId: msg.channelId,
         author: msg.author?.nickname || 'Unknown',
         content: msg.content,
         timestamp: new Date(msg.createdAt),
-        sent: authorId === currentUserId, // ✅ vždy porovnávaj čísla
-      });
+        sent: authorId === currentUserId
+      };
+
+      const isOwnMessage = authorId === currentUserId;
+
+      // Add message
+      addMessage(messageData);
+      const activeChannelId = tabsStore.activeTab?.id;
+      const isViewingChannel = activeChannelId === messageData.chatId;
+
+      // 🔔 Show notification ONLY if:
+      // - It's not your own message
+      // - The user is NOT currently viewing that chat (optional)
+      if (!isOwnMessage && !isViewingChannel) {
+        userChannelsStore.markUnread(messageData.chatId, currentUserId);
+        const channel = channelsStore.channels.find(c => c.id === messageData.chatId);
+        const channelName = channel ? channel.channelName : 'unkonwn channel';
+        Notify.create({
+          message: `CH>${channelName}|User>${messageData.author}: ${truncate(messageData.content)}`,
+          color: 'primary',
+          icon: 'chat',
+          position: 'bottom-right',
+          timeout: 2500
+        });
+      }
     });
+
 
     socket.on('message:deleted', ({ id }: { id: string }) => {
       deleteMessage(id);
