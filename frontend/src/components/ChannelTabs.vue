@@ -36,8 +36,29 @@
     </div>
 
     <!-- Right side buttons -->
-    <q-btn dense flat round :icon="isDark ? 'dark_mode' : 'light_mode'" :color="isDark ? 'secondary' : 'grey-8'"
-      class="q-mr-sm col-shrink" @click="toggleDark" />
+    <q-btn
+      v-if="tabsStore.activeTab?.id"
+      dense
+      flat
+      round
+      icon="notifications"
+      class="q-mr-sm col-shrink"
+    >
+      <q-badge color="primary" floating>{{ notificationSetting.toUpperCase() }}</q-badge>
+      <q-menu auto-close>
+        <q-list style="min-width: 160px">
+          <q-item clickable v-close-popup @click="setNotification('silent')">
+            <q-item-section>Silent</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="setNotification('mentions')">
+            <q-item-section>Mentions Only</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup @click="setNotification('all')">
+            <q-item-section>All</q-item-section>
+          </q-item>
+        </q-list>
+      </q-menu>
+    </q-btn>
 
     <q-btn dense flat round icon="group" class="q-ml-sm col-shrink" @click="ui.toggleRightDrawer" />
   </q-toolbar>
@@ -51,22 +72,45 @@
 </template>
 
 <script setup lang="ts">
-import { Dark } from 'quasar'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import MessageList from 'components/MessageList.vue'
 import { useUiStore } from 'src/stores/ui'
 import { useTabsStore } from 'src/stores/tabs'
+import { useUserStore} from 'src/stores/user'
+import { useUserChannelsStore } from 'src/stores/user_channels'
+import type { NotificationSetting } from 'src/types'
 
 const ui = useUiStore()
 const tabsStore = useTabsStore()
+const userChannelsStore = useUserChannelsStore()
+const usersStore = useUserStore()
 
 const windowWidth = ref(window.innerWidth)
-const isDark = computed(() => Dark.isActive)
-const toggleDark = () => Dark.set(!Dark.isActive)
+const notificationSetting = computed<NotificationSetting>(() => {
+  const activeTabId = tabsStore.activeTab?.id
+  const currentUserId = usersStore.currentUser?.id
+
+  // If no tab or no user, default to 'all'
+  if (!activeTabId || !currentUserId) return 'all'
+
+  // Lookup the user's notification setting for this channel
+  return userChannelsStore.getNotificationSetting(activeTabId, currentUserId) ?? 'all'
+})
 const slideItem = ref(null)
 
 interface SlideEvent {
   reset: () => void
+}
+
+function setNotification(mode: NotificationSetting) {
+  const activeTabId = tabsStore.activeTab?.id
+  const currentUserId = usersStore.currentUser?.id
+
+  // If no tab or no user, default to 'all'
+  if (!activeTabId || !currentUserId) return
+
+  userChannelsStore.changeNotificationSetting(activeTabId, currentUserId, mode)
 }
 
 function onTabChange(newId: string) {

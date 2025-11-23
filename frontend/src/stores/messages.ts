@@ -90,6 +90,12 @@ export const useMessagesStore = defineStore('messages', () => {
       const activeChannelId = tabsStore.activeTab?.id;
       const isViewingChannel = activeChannelId === messageData.chatId;
 
+      const notificationsSetting = userChannelsStore.getNotificationSetting(messageData.chatId, currentUserId);
+
+      if (notificationsSetting === 'silent') {
+        return; // No notifications
+      }
+
       // 🔔 Show notification ONLY if:
       // - It's not your own message
       // - The user is NOT currently viewing that chat (optional)

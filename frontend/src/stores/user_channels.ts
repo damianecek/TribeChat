@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { socket } from 'boot/socket';
-import type { UserChannel } from 'src/types/user_channel';
+import type { UserChannel, NotificationSetting } from 'src/types';
 
 export const useUserChannelsStore = defineStore('userChannels', () => {
-  const userChannels = ref<{ id: string; userId: number; channelId: string, hasUnread: boolean }[]>([]);
+  const userChannels = ref<{ id: string; userId: number; channelId: string, hasUnread: boolean, notificationSetting: NotificationSetting}[]>([]);
 
   function setUserChannels(newUserChannels: UserChannel[]) {
     userChannels.value = newUserChannels.map((uc) => ({
@@ -12,6 +12,7 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
       userId: uc.userId,
       channelId: uc.channelId,
       hasUnread: false,
+      notificationSetting: 'all' as NotificationSetting
     }));
   }
 
@@ -20,7 +21,7 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
       (uc) => uc.userId === userId && uc.channelId === channelId,
     );
     if (!exists) {
-      userChannels.value.push({ id: id || crypto.randomUUID(), userId, channelId, hasUnread: false });
+      userChannels.value.push({ id: id || crypto.randomUUID(), userId, channelId, hasUnread: false, notificationSetting: 'all' as NotificationSetting });
     }
   }
 
@@ -48,6 +49,24 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     if (channel) {
       channel.hasUnread = false;
     }
+  }
+
+  function changeNotificationSetting(channelId: string, userId: number, setting: NotificationSetting) {
+    const channel = userChannels.value.find(
+      c => c.channelId === channelId && c.userId === userId
+    );
+
+    if (channel) {
+      channel.notificationSetting = setting;
+    }
+  }
+
+  function getNotificationSetting(channelId: string, userId: number): NotificationSetting | null {
+    const channel = userChannels.value.find(
+      c => c.channelId === channelId && c.userId === userId
+    );
+
+    return channel ? channel.notificationSetting : null;
   }
 
   // === WebSocket actions ===
@@ -97,6 +116,8 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     kickUser,
     markUnread,
     clearUnread,
+    changeNotificationSetting,
+    getNotificationSetting,
     getChannelsForUser: (userId: number) =>
       userChannels.value.filter((uc) => uc.userId === userId).map((uc) => uc.channelId),
     getUsersInChannel: (channelId: string) =>
