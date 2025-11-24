@@ -1,6 +1,7 @@
 import Channel from '#models/channel'
 import UserChannel from '#models/user_channel'
 import User from '#models/user'
+import Blacklist from '#models/blacklist'
 import app from '@adonisjs/core/services/app'
 import server from '@adonisjs/core/services/server'
 import { Server } from 'socket.io'
@@ -8,7 +9,76 @@ import { Secret } from '@adonisjs/core/helpers'
 import { DateTime } from 'luxon'
 import Message from '#models/message'
 
+// Pending invitations per userId
+const pendingInvites: Map<number, Set<string>> = new Map()
+
+// Vote tracking per channel/user pair -> Set of voter userIds
+const banVotes: Map<string, Set<number>> = new Map()
+
+const BAN_VOTE_MIN_THRESHOLD = 3
+const INACTIVITY_DAYS = 30
+
 let io: Server | null = null
+
+const banVoteKey = (channelId: string, targetId: number) => `${channelId}:${targetId}`
+
+function addPendingInvite(userId: number, channelId: string) {
+  const existing = pendingInvites.get(userId) || new Set<string>()
+  existing.add(channelId)
+  pendingInvites.set(userId, existing)
+}
+
+function clearPendingInvite(userId: number, channelId: string) {
+  const existing = pendingInvites.get(userId)
+  if (!existing) return
+  existing.delete(channelId)
+  if (existing.size === 0) pendingInvites.delete(userId)
+}
+
+function isInvited(userId: number, channelId: string) {
+  return pendingInvites.get(userId)?.has(channelId) ?? false
+}
+
+async function finalizeBan(targetId: number, channelId: string, reason: string) {
+  await Blacklist.updateOrCreate({ userId: targetId, channelId }, { isPermanent: true })
+
+  await UserChannel.query().where('user_id', targetId).andWhere('channel_id', channelId).delete()
+
+  banVotes.delete(banVoteKey(channelId, targetId))
+  clearPendingInvite(targetId, channelId)
+
+  io?.emit('member:banned', { userId: targetId, channelId, isPermanent: true, reason })
+  console.log(`🚫 User ${targetId} banned from channel ${channelId} via ${reason}`)
+}
+
+async function cleanupInactiveChannels() {
+  const cutoff = DateTime.now().minus({ days: INACTIVITY_DAYS })
+  try {
+    const staleChannels = await Channel.query()
+      .where('last_message', '<', cutoff.toJSDate())
+      .orWhereNull('last_message')
+
+    for (const channel of staleChannels) {
+      const channelId = channel.id
+      await Blacklist.query().where('channel_id', channelId).delete()
+      await channel.delete()
+      io?.emit('channel:deleted', channelId)
+      banVotes.forEach((_, key) => {
+        if (key.startsWith(`${channelId}:`)) banVotes.delete(key)
+      })
+      pendingInvites.forEach((set, uid) => {
+        set.delete(channelId)
+        if (set.size === 0) pendingInvites.delete(uid)
+      })
+      console.log(`⏰ Channel ${channelId} deleted due to inactivity`)
+    }
+  } catch (err: any) {
+    // During migrations the table may not exist yet; fail silently until DB is ready
+    if (err?.code !== '42P01') {
+      console.error('❌ Inactive channel cleanup failed:', err)
+    }
+  }
+}
 
 app.ready(() => {
   io = new Server(server.getNodeServer(), {
@@ -38,8 +108,24 @@ app.ready(() => {
 
     console.log(`🟢 Connected: ${socket.id}, userId: ${userId}`)
 
+    // Send current ban list to this user so UI can render badges after refresh
+    const userBans = await Blacklist.query().where('user_id', userId).andWhere('is_permanent', true)
+    socket.emit(
+      'member:banned:init',
+      userBans.map((ban) => ({
+        userId: ban.userId,
+        channelId: ban.channelId,
+        isPermanent: ban.isPermanent,
+      }))
+    )
+
     await User.query().where('id', userId).update({ status: 'Online' })
     io?.emit('user:status', { userId, status: 'Online' })
+
+    // Re-send any pending invitations for this user after reconnect
+    pendingInvites
+      .get(userId)
+      ?.forEach((channelId) => socket.emit('member:invited', { userId, channelId }))
 
     // === USER STATUS ===
     socket.on('user:setStatus', async ({ status }: { status: string }) => {
@@ -116,8 +202,16 @@ app.ready(() => {
         if (channel.adminId !== userId)
           return socket.emit('error:channel', { message: 'Not authorized to delete this channel.' })
 
+        await Blacklist.query().where('channel_id', channelId).delete()
         await channel.delete()
         await UserChannel.query().where('channel_id', channelId).delete()
+        banVotes.forEach((_, key) => {
+          if (key.startsWith(`${channelId}:`)) banVotes.delete(key)
+        })
+        pendingInvites.forEach((set, uid) => {
+          set.delete(channelId)
+          if (set.size === 0) pendingInvites.delete(uid)
+        })
         io?.emit('channel:deleted', channelId)
         console.log(`🔴 Channel deleted: ${channelId}`)
       } catch (err) {
@@ -133,6 +227,7 @@ app.ready(() => {
           .andWhere('channel_id', channelId)
           .delete()
 
+        socket.leave(`channel:${channelId}`)
         io?.emit('member:left', { userId, channelId })
         console.log(`🔵 User ${userId} left channel ${channelId}`)
       } catch (err) {
@@ -151,6 +246,15 @@ app.ready(() => {
           if (channel.adminId !== userId)
             return socket.emit('error:member', { message: 'Not authorized to invite.' })
 
+          const isBanned = await Blacklist.query()
+            .where('user_id', invitedId)
+            .andWhere('channel_id', channelId)
+            .andWhere('is_permanent', true)
+            .first()
+
+          if (isBanned)
+            return socket.emit('error:member', { message: 'User is banned from this channel.' })
+
           const exists = await UserChannel.query()
             .where('user_id', invitedId)
             .andWhere('channel_id', channelId)
@@ -158,14 +262,20 @@ app.ready(() => {
 
           if (exists) return socket.emit('error:member', { message: 'User already in channel.' })
 
-          const uc = await UserChannel.create({ userId: invitedId, channelId })
-          io?.emit('member:invited', { userId: invitedId, channelId, id: uc.id })
-          console.log(`🟢 Invited user ${invitedId} to channel ${channelId}`)
+          addPendingInvite(invitedId, channelId)
+          io?.emit('member:invited', { userId: invitedId, channelId, invitedBy: userId })
+          console.log(`🟢 Pending invite for user ${invitedId} to channel ${channelId}`)
         } catch (err) {
           console.error('❌ Invite error:', err)
         }
       }
     )
+
+    // === DECLINE INVITE ===
+    socket.on('member:declineInvite', (channelId: string) => {
+      clearPendingInvite(userId!, channelId)
+      socket.emit('member:invitationCleared', { channelId })
+    })
 
     // === KICK USER ===
     socket.on(
@@ -182,11 +292,79 @@ app.ready(() => {
             .where('user_id', targetId)
             .andWhere('channel_id', channelId)
             .delete()
+          clearPendingInvite(targetId, channelId)
 
           io?.emit('member:kicked', { userId: targetId, channelId })
           console.log(`🔴 Kicked user ${targetId} from channel ${channelId}`)
         } catch (err) {
           console.error('❌ Kick error:', err)
+        }
+      }
+    )
+
+    // === ADMIN BAN (PERMANENT) ===
+    socket.on(
+      'member:ban',
+      async ({ targetId, channelId }: { targetId: number; channelId: string }) => {
+        try {
+          const channel = await Channel.find(channelId)
+          if (!channel) return socket.emit('error:member', { message: 'Channel not found.' })
+
+          if (channel.adminId !== userId)
+            return socket.emit('error:member', { message: 'Not authorized to ban.' })
+
+          if (channel.adminId === targetId)
+            return socket.emit('error:member', { message: 'Cannot ban the channel owner.' })
+
+          await finalizeBan(targetId, channelId, 'admin')
+        } catch (err) {
+          console.error('❌ Ban error:', err)
+        }
+      }
+    )
+
+    // === VOTE BAN ===
+    socket.on(
+      'member:voteBan',
+      async ({ targetId, channelId }: { targetId: number; channelId: string }) => {
+        try {
+          if (targetId === userId) return
+
+          const channel = await Channel.find(channelId)
+          if (!channel) return socket.emit('error:member', { message: 'Channel not found.' })
+
+          if (channel.adminId === targetId)
+            return socket.emit('error:member', { message: 'Cannot ban the channel owner.' })
+
+          const targetMembership = await UserChannel.query()
+            .where('user_id', targetId)
+            .andWhere('channel_id', channelId)
+            .first()
+          if (!targetMembership) {
+            socket.emit('error:member', { message: 'Target is not a channel member.' })
+            return
+          }
+
+          const key = banVoteKey(channelId, targetId)
+          const voters = banVotes.get(key) || new Set<number>()
+          voters.add(userId!)
+          banVotes.set(key, voters)
+
+          const memberCountResult = await UserChannel.query()
+            .where('channel_id', channelId)
+            .count('* as total')
+          const memberCountRow = memberCountResult[0]
+          const memberCount = Number(memberCountRow.$extras?.total ?? memberCountRow.total ?? 0)
+          const threshold = Math.max(BAN_VOTE_MIN_THRESHOLD, Math.ceil(memberCount / 2))
+
+          const votes = voters.size
+          io?.emit('member:banVote', { userId: targetId, channelId, votes, threshold })
+
+          if (votes >= threshold) {
+            await finalizeBan(targetId, channelId, 'vote')
+          }
+        } catch (err) {
+          console.error('❌ Vote ban error:', err)
         }
       }
     )
@@ -198,6 +376,25 @@ app.ready(() => {
         if (!content.trim()) return
 
         try {
+          const membership = await UserChannel.query()
+            .where('user_id', userId!)
+            .andWhere('channel_id', channelId)
+            .first()
+          if (!membership) {
+            socket.emit('error:message', { message: 'Join the channel before sending messages.' })
+            return
+          }
+
+          const isBanned = await Blacklist.query()
+            .where('user_id', userId!)
+            .andWhere('channel_id', channelId)
+            .andWhere('is_permanent', true)
+            .first()
+          if (isBanned) {
+            socket.emit('error:message', { message: 'You are banned from this channel.' })
+            return
+          }
+
           const message = await Message.create({
             channelId,
             authorId: userId!,
@@ -205,6 +402,7 @@ app.ready(() => {
           })
 
           await message.load('author')
+          await Channel.query().where('id', channelId).update({ lastMessage: DateTime.local() })
 
           // ✅ iba broadcast do roomu (bez duplicity pre odosielateľa)
           io?.to(`channel:${channelId}`).emit('message:new', {
@@ -227,6 +425,15 @@ app.ready(() => {
     // === FETCH ALL MESSAGES IN CHANNEL ===
     socket.on('message:fetch', async (channelId: string) => {
       try {
+        const membership = await UserChannel.query()
+          .where('user_id', userId!)
+          .andWhere('channel_id', channelId)
+          .first()
+        if (!membership) {
+          socket.emit('error:message', { message: 'Join the channel to view messages.' })
+          return
+        }
+
         const messages = await Message.query()
           .where('channel_id', channelId)
           .orderBy('created_at', 'asc')
@@ -280,6 +487,27 @@ app.ready(() => {
     // === JOIN CHANNEL ROOM ===
     socket.on('member:join', async (channelId: string) => {
       try {
+        const channel = await Channel.find(channelId)
+        if (!channel) {
+          socket.emit('error:member', { message: 'Channel not found.' })
+          return
+        }
+
+        const isBanned = await Blacklist.query()
+          .where('user_id', userId!)
+          .andWhere('channel_id', channelId)
+          .andWhere('is_permanent', true)
+          .first()
+        if (isBanned) {
+          socket.emit('error:member', { message: 'You are banned from this channel.' })
+          return
+        }
+
+        if (!channel.isPublic && channel.adminId !== userId && !isInvited(userId!, channelId)) {
+          socket.emit('error:member', { message: 'Invite required to join this private channel.' })
+          return
+        }
+
         const existing = await UserChannel.query()
           .where('user_id', userId!)
           .andWhere('channel_id', channelId)
@@ -287,6 +515,7 @@ app.ready(() => {
 
         if (existing) {
           socket.join(`channel:${channelId}`)
+          clearPendingInvite(userId!, channelId)
           return
         }
 
@@ -295,6 +524,7 @@ app.ready(() => {
           channelId,
         })
 
+        clearPendingInvite(userId!, channelId)
         socket.join(`channel:${channelId}`)
         io?.emit('member:joined', { userId, channelId, id: newLink.id })
         console.log(`🟢 User ${userId} joined channel ${channelId}`)
@@ -310,6 +540,10 @@ app.ready(() => {
       console.log(`🔴 Disconnected: ${socket.id}, userId: ${userId}`)
     })
   })
+
+  // Periodically remove inactive channels
+  void cleanupInactiveChannels()
+  setInterval(() => void cleanupInactiveChannels(), 1000 * 60 * 60)
 
   console.log('✅ Socket.IO server initialized')
 })

@@ -1,4 +1,3 @@
-import { socket } from 'boot/socket';
 import { useChannelsStore } from 'stores/channels';
 import { useTabsStore } from 'stores/tabs';
 import { useUserChannelsStore } from 'stores/user_channels';
@@ -27,8 +26,8 @@ export function useChannelActions() {
       tabsStore.setActiveTab(channel.id);
     }
 
-    if (socket && channel.id) {
-      socket.emit('member:join', channel.id);
+    if (channel.id) {
+      userChannelsStore.joinChannel(channel.id);
     }
   }
 
@@ -41,13 +40,13 @@ export function useChannelActions() {
     const existing = channelsStore.channels.find((c) => c.channelName === trimmed);
     if (existing) {
       // Join channel if not already member
-      socket?.emit('channel:join', existing.id);
+      userChannelsStore.joinChannel(existing.id);
       openChannel(existing);
       return existing;
     }
 
     // create new channel through WS
-    socket?.emit('channel:create', { name: trimmed, isPublic });
+    channelsStore.createChannel(trimmed, !isPublic);
     console.log(`🆕 Requesting channel creation: ${trimmed}`);
     return null;
   }
@@ -56,7 +55,7 @@ export function useChannelActions() {
   function joinChannelByName(name: string) {
     const channel = channelsStore.channels.find((c) => c.channelName === name);
     if (!channel) throw new Error(`Channel #${name} not found`);
-    socket?.emit('channel:join', channel.id);
+    userChannelsStore.joinChannel(channel.id);
     openChannel(channel);
   }
 
@@ -70,13 +69,12 @@ export function useChannelActions() {
 
     const uid = auth.user?.id;
     if (uid) {
-      socket?.emit('channel:leave', activeId);
-      socket?.emit('user:left:channel', { userId: uid, channelId: activeId });
+      userChannelsStore.leaveChannel(activeId);
     }
 
     // If user is admin, delete channel
     if (ch.adminId === uid) {
-      socket?.emit('channel:delete', activeId);
+      channelsStore.deleteChannel(activeId);
     }
 
     tabsStore.closeTab(activeId);
@@ -115,8 +113,7 @@ export function useChannelActions() {
 
     if (alreadyIn) throw new Error(`User ${nickname} is already in this channel`);
 
-    socket?.emit('channel:join', channelId);
-    socket?.emit('user:joined:channel', { userId: user.id, channelId });
+    userChannelsStore.inviteUser(user.id, channelId);
     console.log(`✅ Invited ${nickname} to #${channelId}`);
   }
 
@@ -130,8 +127,7 @@ export function useChannelActions() {
 
     if (!inChannel) throw new Error(`User ${nickname} is not in this channel`);
 
-    socket?.emit('channel:leave', channelId);
-    socket?.emit('user:left:channel', { userId: user.id, channelId });
+    userChannelsStore.kickUser(user.id, channelId);
     console.log(`❌ Kicked ${nickname} from #${channelId}`);
   }
 

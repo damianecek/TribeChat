@@ -8,6 +8,7 @@ import Channel from './channel.js'
 export default class UserChannel extends BaseModel {
   @column({ isPrimary: true })
   declare id: string
+  total: any
 
   @beforeCreate()
   static assignUuid(userChannel: UserChannel) {

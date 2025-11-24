@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Channel from '#models/channel'
 import UserChannel from '#models/user_channel'
 import User from '#models/user'
+import Blacklist from '#models/blacklist'
 import { DateTime } from 'luxon'
 import { getIo } from '#start/ws'
 
@@ -110,6 +111,9 @@ export default class ChannelsController {
       return response.unauthorized({ error: 'Only channel admin can delete this channel.' })
     }
 
+    await channel.related('messages').query().delete()
+    await channel.related('userChannels').query().delete()
+    await Blacklist.query().where('channel_id', channel.id).delete()
     await channel.delete()
 
     getIo().emit('channel:deleted', channel.id)

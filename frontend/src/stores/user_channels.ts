@@ -5,8 +5,17 @@ import type { UserChannel, NotificationSetting } from 'src/types';
 
 export const useUserChannelsStore = defineStore('userChannels', () => {
   const userChannels = ref<{ id: string; userId: number; channelId: string, hasUnread: boolean, notificationSetting: NotificationSetting}[]>([]);
+  const invitations = ref<{ channelId: string; userId: number; invitedBy?: number }[]>([]);
+  const bans = ref<{ channelId: string; userId: number; isPermanent: boolean }[]>([]);
 
   function setUserChannels(newUserChannels: UserChannel[]) {
+    if (newUserChannels.length === 0) {
+      userChannels.value = [];
+      invitations.value = [];
+      bans.value = [];
+      return;
+    }
+
     userChannels.value = newUserChannels.map((uc) => ({
       id: uc.id,
       userId: uc.userId,
@@ -14,6 +23,10 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
       hasUnread: false,
       notificationSetting: 'all' as NotificationSetting
     }));
+
+    invitations.value = invitations.value.filter(
+      (inv) => !newUserChannels.some((uc) => uc.userId === inv.userId && uc.channelId === inv.channelId)
+    );
   }
 
   function addUserToChannel(userId: number, channelId: string, id?: string) {
@@ -29,6 +42,53 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     userChannels.value = userChannels.value.filter(
       (uc) => !(uc.userId === userId && uc.channelId === channelId),
     );
+  }
+
+  function addInvitation(channelId: string, userId: number, invitedBy?: number) {
+    const exists = invitations.value.some(
+      (inv) => inv.channelId === channelId && inv.userId === userId
+    );
+    if (exists) return;
+
+    const payload: { channelId: string; userId: number; invitedBy?: number } =
+      invitedBy !== undefined
+        ? { channelId, userId, invitedBy }
+        : { channelId, userId };
+
+    invitations.value.push(payload);
+  }
+
+  function removeInvitation(channelId: string, userId: number) {
+    invitations.value = invitations.value.filter(
+      (inv) => !(inv.channelId === channelId && inv.userId === userId)
+    );
+  }
+
+  function getInvitationsForUser(userId: number) {
+    return invitations.value.filter((inv) => inv.userId === userId);
+  }
+
+  function addBan(userId: number, channelId: string, isPermanent: boolean) {
+    const exists = bans.value.some(
+      (ban) => ban.channelId === channelId && ban.userId === userId
+    );
+    if (!exists) {
+      bans.value.push({ userId, channelId, isPermanent });
+    }
+  }
+
+  function setBans(list: { userId: number; channelId: string; isPermanent: boolean }[]) {
+    bans.value = list
+  }
+
+  function removeBan(userId: number, channelId: string) {
+    bans.value = bans.value.filter(
+      (ban) => !(ban.userId === userId && ban.channelId === channelId)
+    );
+  }
+
+  function isBanned(userId: number, channelId: string) {
+    return bans.value.some((ban) => ban.userId === userId && ban.channelId === channelId);
   }
 
   function markUnread(channelId: string, userId: number) {
@@ -86,34 +146,44 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     socket?.emit('member:kick', { targetId, channelId });
   }
 
-  // === Listeners ===
-  if (socket) {
-    socket.on('member:joined', (payload: { userId: number; channelId: string; id: string }) => {
-      addUserToChannel(payload.userId, payload.channelId, payload.id);
-    });
+  function acceptInvite(channelId: string) {
+    socket?.emit('member:join', channelId);
+  }
 
-    socket.on('member:left', ({ userId, channelId }) => {
-      removeUserFromChannel(userId, channelId);
-    });
+  function declineInvite(channelId: string) {
+    socket?.emit('member:declineInvite', channelId);
+  }
 
-    socket.on('member:invited', (payload: { userId: number; channelId: string; id: string }) => {
-      addUserToChannel(payload.userId, payload.channelId, payload.id);
-    });
+  function banUser(targetId: number, channelId: string) {
+    socket?.emit('member:ban', { targetId, channelId });
+  }
 
-    socket.on('member:kicked', ({ userId, channelId }) => {
-      removeUserFromChannel(userId, channelId);
-    });
+  function voteBanUser(targetId: number, channelId: string) {
+    socket?.emit('member:voteBan', { targetId, channelId });
   }
 
   return {
     userChannels,
+    invitations,
+    bans,
     setUserChannels,
     addUserToChannel,
     removeUserFromChannel,
+    addInvitation,
+    removeInvitation,
+    getInvitationsForUser,
+    addBan,
+    removeBan,
+    isBanned,
+    setBans,
     joinChannel,
     leaveChannel,
     inviteUser,
     kickUser,
+    acceptInvite,
+    declineInvite,
+    banUser,
+    voteBanUser,
     markUnread,
     clearUnread,
     changeNotificationSetting,

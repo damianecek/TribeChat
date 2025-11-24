@@ -95,15 +95,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { useChannelsStore } from 'stores/channels'
 import { useUserChannelsStore } from 'stores/user_channels'
 import { useUserStore } from 'stores/user'
 import { useTabsStore } from 'stores/tabs'
 import { useAuthStore } from 'stores/auth'
-import { socket } from 'boot/socket'
 import type { User } from 'src/types/user'
 
 const router = useRouter()
+const $q = useQuasar()
 const tabsStore = useTabsStore()
 const channelsStore = useChannelsStore()
 const userChannelsStore = useUserChannelsStore()
@@ -137,22 +138,25 @@ async function openProfile(user: User) {
 
 function inviteUser(user: User) {
   if (!activeChannelId.value) return
-  socket?.emit('channel:join', activeChannelId.value)
-  socket?.emit('user:joined:channel', { userId: user.id, channelId: activeChannelId.value })
+  userChannelsStore.inviteUser(user.id, activeChannelId.value)
+  $q.notify({ type: 'positive', message: `Invited ${user.nickname}` })
 }
 
 function kickUser(user: User) {
   if (!activeChannelId.value) return
-  socket?.emit('channel:leave', activeChannelId.value)
-  socket?.emit('user:left:channel', { userId: user.id, channelId: activeChannelId.value })
+  userChannelsStore.kickUser(user.id, activeChannelId.value)
 }
 
 function banUser(user: User) {
-  console.log(`🚫 Ban ${user.firstName}`)
+  if (!activeChannelId.value) return
+  userChannelsStore.banUser(user.id, activeChannelId.value)
+  $q.notify({ type: 'negative', message: `Banned ${user.nickname}` })
 }
 
 function voteBanUser(user: User) {
-  console.log(`⚖️ Vote ban for ${user.firstName}`)
+  if (!activeChannelId.value) return
+  userChannelsStore.voteBanUser(user.id, activeChannelId.value)
+  $q.notify({ type: 'warning', message: `Voted to ban ${user.nickname}` })
 }
 
 function getStatusColor(status: string): string {

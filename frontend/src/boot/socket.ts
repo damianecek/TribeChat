@@ -81,6 +81,9 @@ export default boot(() => {
       ({ userId, channelId, id }: { userId: number; channelId: string; id: string }) => {
         console.log(`🟢 member:joined user:${userId} -> channel:${channelId}`);
         userChannelsStore.addUserToChannel(userId, channelId, id);
+        if (auth.user && userId === auth.user.id) {
+          userChannelsStore.removeInvitation(channelId, userId);
+        }
       },
     );
 
@@ -91,9 +94,10 @@ export default boot(() => {
 
     socket.on(
       'member:invited',
-      ({ userId, channelId, id }: { userId: number; channelId: string; id: string }) => {
+      ({ userId, channelId, invitedBy }: { userId: number; channelId: string; invitedBy?: number }) => {
+        if (auth.user?.id !== userId) return;
         console.log(`🟢 member:invited user:${userId} -> channel:${channelId}`);
-        userChannelsStore.addUserToChannel(userId, channelId, id);
+        userChannelsStore.addInvitation(channelId, userId, invitedBy);
       },
     );
 
@@ -101,6 +105,38 @@ export default boot(() => {
       console.log(`🔴 member:kicked user:${userId} from channel:${channelId}`);
       userChannelsStore.removeUserFromChannel(userId, channelId);
     });
+
+    socket.on(
+      'member:banned',
+      ({ userId, channelId, isPermanent }: { userId: number; channelId: string; isPermanent: boolean }) => {
+        console.log(`⛔ member:banned user:${userId} from channel:${channelId}`);
+        userChannelsStore.removeUserFromChannel(userId, channelId);
+        userChannelsStore.addBan(userId, channelId, isPermanent);
+        if (auth.user && userId === auth.user.id) {
+          userChannelsStore.removeInvitation(channelId, userId);
+        }
+      }
+    );
+
+    socket.on(
+      'member:banVote',
+      ({ userId, channelId, votes, threshold }: { userId: number; channelId: string; votes: number; threshold: number }) => {
+        console.log(`⚖️ Vote ban update for user:${userId} channel:${channelId} votes:${votes}/${threshold}`);
+      }
+    );
+
+    socket.on('member:invitationCleared', ({ channelId }: { channelId: string }) => {
+      const currentUserId = auth.user?.id;
+      if (!currentUserId) return;
+      userChannelsStore.removeInvitation(channelId, currentUserId);
+    });
+
+    socket.on(
+      'member:banned:init',
+      (list: { userId: number; channelId: string; isPermanent: boolean }[]) => {
+        userChannelsStore.setBans(list);
+      }
+    );
 
     // === ERROR HANDLING ===
     socket.on('error:channel', (payload: { message: string }) => {

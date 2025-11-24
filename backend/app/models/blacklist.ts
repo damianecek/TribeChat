@@ -6,15 +6,12 @@ import Channel from './channel.js'
 
 export default class Blacklist extends BaseModel {
   @column({ isPrimary: true })
-  declare id: number
-
-  @column()
   declare userId: number
 
   @belongsTo(() => User)
   declare user: BelongsTo<typeof User>
 
-  @column()
+  @column({ isPrimary: true })
   declare channelId: string
 
   @belongsTo(() => Channel)

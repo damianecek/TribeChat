@@ -42,11 +42,11 @@ export const useChannelsStore = defineStore('channels', () => {
   }
 
   function joinChannel(channelId: string) {
-    socket?.emit('channel:join', channelId)
+    socket?.emit('member:join', channelId)
   }
 
   function leaveChannel(channelId: string) {
-    socket?.emit('channel:leave', channelId)
+    socket?.emit('member:leave', channelId)
   }
 
   // === WS eventy ===
