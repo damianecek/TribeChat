@@ -19,7 +19,7 @@
         class="channel-menu-element items-center channel-invited" @click="confirmJoin(channel)">
         <q-item-section>
           <div class="row items-center no-wrap">
-            <span>{{ channel.channelName }}</span>
+            <span>{{ truncate(channel.channelName) }}</span>
             <q-chip dense outline color="secondary" text-color="secondary" class="q-ml-sm">Invited</q-chip>
             <q-icon v-if="!channel.isPublic" name="lock" size="16px" class="q-ml-sm text-grey" />
           </div>
@@ -43,7 +43,7 @@
         @click="openChannel(channel)">
         <q-item-section>
           <div class="row items-center no-wrap">
-            <span>{{ channel.channelName }}</span>
+            <span>{{ truncate(channel.channelName) }}</span>
             <q-icon v-if="!channel.isPublic" name="lock" size="16px" class="q-ml-sm text-grey" />
             <q-icon v-if="channel.adminId === user?.id" name="person" size="16px"
               class="q-ml-xs text-primary" />
@@ -80,7 +80,7 @@
       <q-item v-for="channel in otherChannels" :key="channel.id" class="channel-menu-element items-center">
         <q-item-section>
           <div class="row items-center no-wrap">
-            <span>{{ channel.channelName }}</span>
+            <span>{{ truncate(channel.channelName) }}</span>
             <q-icon v-if="!channel.isPublic" name="lock" size="16px" class="q-ml-sm text-grey" />
             <q-badge v-if="isBannedFromChannel(channel.id)" color="negative" class="q-ml-sm">Banned</q-badge>
           </div>
@@ -356,6 +356,10 @@ function leaveChannel(channel: Channel) {
 
 function handleScrollLoad(_index: number, done: () => void) {
   done()
+}
+
+function truncate(str: string, max: number = 15): string {
+  return str.length > max ? str.slice(0, max) + "..." : str;
 }
 
 onMounted(() => {

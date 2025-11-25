@@ -9,7 +9,7 @@ export default class extends BaseSchema {
 
       table.string('channel_id').references('channels.id').onDelete('CASCADE')
       table.integer('author_id').unsigned().references('users.id')
-      table.integer('recipient_id').unsigned().references('users.id')
+      table.integer('recipient_id').unsigned().references('users.id').onDelete('CASCADE')
       table.string('content')
       table.timestamps(true)
     })

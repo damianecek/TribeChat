@@ -6,7 +6,7 @@
       <!-- Tabs for larger screens -->
       <q-tabs v-if="windowWidth > 600" :model-value="tabsStore.activeTab?.id" @update:model-value="onTabChange" shrink
         stretch inline-label align="left" class="col-shrink">
-        <q-tab v-for="tab in tabsStore.tabs" :key="tab.id" :name="tab.id" :label="tab.label">
+        <q-tab v-for="tab in tabsStore.tabs" :key="tab.id" :name="tab.id" :label="truncate(tab.label)">
           <q-btn flat dense round size="sm" icon="close" @click.stop="tabsStore.closeTab(tab.id)" />
         </q-tab>
       </q-tabs>
@@ -23,7 +23,7 @@
 
             <q-item clickable v-ripple @click="scope.toggleOption(scope.opt)">
               <q-item-section>
-                <q-item-label>{{ scope.opt.label }}</q-item-label>
+                <q-item-label>{{ truncate(scope.opt.label) }}</q-item-label>
               </q-item-section>
 
               <q-item-section no-shadow side>
@@ -124,6 +124,10 @@ function handleResize() {
 function onSlide({ reset }: SlideEvent, tabId: string) {
   reset()
   tabsStore.closeTab(tabId)
+}
+
+function truncate(str: string, max: number = 20): string {
+  return str.length > max ? str.slice(0, max) + "..." : str;
 }
 
 onMounted(() => window.addEventListener('resize', handleResize))

@@ -69,6 +69,12 @@ export const useMessagesStore = defineStore('messages', () => {
     return str.length > max ? str.slice(0, max) + "..." : str;
   }
 
+  function isMention(msg: string, username: string): boolean {
+    const myUsername = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // escape
+    const regex = new RegExp(`@${myUsername}(?![a-zA-Z0-9_])`)
+    return regex.test(msg)
+  }
+
   if (socket) {
     socket.on('message:new', (msg: ServerMessage) => {
       const currentUserId = Number(auth.user?.id);
@@ -92,8 +98,12 @@ export const useMessagesStore = defineStore('messages', () => {
 
       const notificationsSetting = userChannelsStore.getNotificationSetting(messageData.chatId, currentUserId);
 
-      if (notificationsSetting === 'silent') {
+      if (notificationsSetting === 'silent' || auth.user?.status === 'DND') {
+        console.log(notificationsSetting, auth.user?.status);
         return; // No notifications
+      }
+      else if (notificationsSetting === 'mentions' && !isMention(messageData.content, auth.user!.nickname)) {
+        return;
       }
 
       // 🔔 Show notification ONLY if:
