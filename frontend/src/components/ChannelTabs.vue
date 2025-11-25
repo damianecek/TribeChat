@@ -65,7 +65,7 @@
 
   <!-- Tab panels -->
   <q-tab-panels :model-value="tabsStore.activeTab?.id" animated class="tab-root col">
-    <q-tab-panel v-for="tab in tabsStore.tabs" :key="tab.id" :name="tab.id" class="column absolute-full">
+    <q-tab-panel v-for="tab in tabsStore.tabs" :key="tab.id" :name="tab.id" class="column absolute-full no-padding">
       <MessageList />
     </q-tab-panel>
   </q-tab-panels>

@@ -1,8 +1,15 @@
 <template>
   <div class="row items-center q-px-md q-mt-auto">
     <div class="col">
-      <q-input v-model="text" autogrow placeholder="Type a message or command..." filled dense
-        @keydown.enter.prevent="handleEnter">
+      <q-input
+        v-model="text"
+        autogrow
+        placeholder="Type a message or command..."
+        filled
+        dense
+        @update:model-value="onTyping"
+        @keydown.enter.prevent="handleEnter"
+      >
         <template #append>
           <q-btn @click="sendMessage" round dense flat icon="send" />
         </template>
@@ -34,6 +41,37 @@ const {
   kickUserFromChannel,
   listChannelMembers,
 } = useChannelActions()
+
+let isTyping = false
+let typingTimeout: ReturnType<typeof setTimeout>
+let lastDraftEmit = 0
+
+function onTyping() {
+  const channelId = tabStore.activeTab?.id
+  if (!channelId) return
+
+  const now = Date.now()
+
+  // Emit typing:start only once
+  if (!isTyping) {
+    isTyping = true
+    socket?.emit("typing:start", { channelId, draft: text.value })
+  }
+
+  // Throttle draft updates to every 200ms
+  if (now - lastDraftEmit > 200) {
+    socket?.emit("typing:draft", { channelId, draft: text.value })
+    lastDraftEmit = now
+  }
+
+  // Reset stop timer
+  clearTimeout(typingTimeout)
+  typingTimeout = setTimeout(() => {
+    isTyping = false
+    socket?.emit("typing:stop", { channelId })
+  }, 5000)
+}
+
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message

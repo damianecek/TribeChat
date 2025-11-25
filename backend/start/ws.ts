@@ -564,6 +564,85 @@ app.ready(() => {
       io?.emit('user:status', { userId, status: 'Offline' })
       console.log(`🔴 Disconnected: ${socket.id}, userId: ${userId}`)
     })
+
+    // === USER STARTED TYPING ===
+    socket.on('typing:start', async ({ channelId, draft }) => {
+      try {
+        const membership = await UserChannel.query()
+          .where('user_id', userId!)
+          .andWhere('channel_id', channelId)
+          .first()
+
+        if (!membership) {
+          return socket.emit('error:typing', { message: 'Join the channel to type.' })
+        }
+
+        const user = await User.find(userId!)
+        const nickname = user?.nickname
+
+        socket.broadcast.emit(`typing:start:${channelId}`, {
+          userId,
+          username: nickname,
+          channelId,
+          draft, // <<< send initial draft
+        })
+
+        console.log(`⌨️ ${nickname} is typing in channel ${channelId}`)
+      } catch (err) {
+        console.error('❌ typing:start error', err)
+      }
+    })
+
+    // === USER UPDATES DRAFT MESSAGE ===
+    socket.on('typing:draft', async ({ channelId, draft }) => {
+      try {
+        const membership = await UserChannel.query()
+          .where('user_id', userId!)
+          .andWhere('channel_id', channelId)
+          .first()
+
+        if (!membership) return
+
+        const user = await User.find(userId!)
+        const nickname = user?.nickname
+
+        socket.broadcast.emit(`typing:draft:${channelId}`, {
+          userId,
+          username: nickname,
+          channelId,
+          draft,
+        })
+      } catch (err) {
+        console.error('❌ typing:draft error', err)
+      }
+    })
+
+    // === USER STOPPED TYPING ===
+    socket.on('typing:stop', async ({ channelId }) => {
+      try {
+        const membership = await UserChannel.query()
+          .where('user_id', userId!)
+          .andWhere('channel_id', channelId)
+          .first()
+
+        if (!membership) {
+          return socket.emit('error:typing', { message: 'Join the channel first.' })
+        }
+
+        const user = await User.find(userId!)
+        const nickname = user?.nickname
+
+        socket.broadcast.emit(`typing:stop:${channelId}`, {
+          userId,
+          username: nickname,
+          channelId,
+        })
+
+        console.log(`🛑 ${nickname} stopped typing in channel ${channelId}`)
+      } catch (err) {
+        console.error('❌ typing:stop error', err)
+      }
+    })
   })
 
   // Periodically remove inactive channels
