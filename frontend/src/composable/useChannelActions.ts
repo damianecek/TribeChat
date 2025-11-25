@@ -118,7 +118,7 @@ export function useChannelActions() {
   }
 
   // === KICK USER FROM CHANNEL ===
-  function kickUserFromChannel(nickname: string) {
+  function kickUserFromChannel(nickname: string): 'kicked' | 'voted' {
     const user = userStore.findUserByName(nickname);
     if (!user) throw new Error(`User ${nickname} not found`);
 
@@ -127,8 +127,18 @@ export function useChannelActions() {
 
     if (!inChannel) throw new Error(`User ${nickname} is not in this channel`);
 
-    userChannelsStore.kickUser(user.id, channelId);
-    console.log(`❌ Kicked ${nickname} from #${channelId}`);
+    const channel = channelsStore.channels.find((c) => c.id === channelId);
+    const isOwner = channel?.adminId === auth.user?.id;
+
+    if (isOwner) {
+      userChannelsStore.kickUser(user.id, channelId);
+      console.log(`❌ Kicked ${nickname} from #${channelId}`);
+      return 'kicked';
+    } else {
+      userChannelsStore.voteBanUser(user.id, channelId);
+      console.log(`⚖️ Vote-ban triggered for ${nickname} in #${channelId}`);
+      return 'voted';
+    }
   }
 
   return {

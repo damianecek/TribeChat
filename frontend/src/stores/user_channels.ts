@@ -162,6 +162,10 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     socket?.emit('member:voteBan', { targetId, channelId });
   }
 
+  function unbanUser(targetId: number, channelId: string) {
+    socket?.emit('member:unban', { targetId, channelId });
+  }
+
   return {
     userChannels,
     invitations,
@@ -184,6 +188,7 @@ export const useUserChannelsStore = defineStore('userChannels', () => {
     declineInvite,
     banUser,
     voteBanUser,
+    unbanUser,
     markUnread,
     clearUnread,
     changeNotificationSetting,

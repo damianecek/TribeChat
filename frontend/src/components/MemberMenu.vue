@@ -56,34 +56,38 @@
           <div class="text-caption text-grey q-pl-sm q-mb-xs">Other users</div>
 
           <q-item v-for="userItem in otherUsers" :key="userItem.id">
-            <q-item-section avatar>
-              <q-avatar :icon="'person'" color="primary" text-color="white" class="status-avatar"
-                :style="{ '--status-color': getStatusColor(userItem.status) }" />
-            </q-item-section>
+          <q-item-section avatar>
+            <q-avatar :icon="'person'" color="primary" text-color="white" class="status-avatar"
+              :style="{ '--status-color': getStatusColor(userItem.status) }" />
+          </q-item-section>
 
-            <q-item-section>
-              <q-item-label class="user-name">{{ userItem.nickname }}</q-item-label>
-              <q-item-label caption>{{ userItem.status }}</q-item-label>
-            </q-item-section>
+          <q-item-section>
+            <q-item-label class="user-name">{{ userItem.nickname }}</q-item-label>
+            <q-item-label caption>{{ userItem.status }}</q-item-label>
+          </q-item-section>
 
-            <q-item-section side>
-              <q-btn dense flat round icon="more_vert" @click.stop>
-                <q-menu auto-close class="no-shadow">
-                  <q-list style="min-width: 130px">
-                    <q-item clickable v-close-popup @click="openProfile(userItem)">
-                      <q-item-section>Profile</q-item-section>
-                    </q-item>
+          <q-item-section side>
+            <q-btn dense flat round icon="more_vert" @click.stop>
+              <q-menu auto-close class="no-shadow">
+                <q-list style="min-width: 130px">
+                  <q-item clickable v-close-popup @click="openProfile(userItem)">
+                    <q-item-section>Profile</q-item-section>
+                  </q-item>
 
-                    <q-item clickable v-close-popup @click="inviteUser(userItem)">
-                      <q-item-section class="text-positive">Invite</q-item-section>
-                    </q-item>
+                  <q-item v-if="!isOwner || !isBanned(userItem.id)" clickable v-close-popup @click="inviteUser(userItem)">
+                    <q-item-section class="text-positive">Invite</q-item-section>
+                  </q-item>
 
-                    <q-item v-if="isOwner" clickable v-close-popup @click="banUser(userItem)">
-                      <q-item-section class="text-negative">Ban</q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
+                  <q-item v-if="isOwner && isBanned(userItem.id)" clickable v-close-popup @click="unbanUser(userItem)">
+                    <q-item-section class="text-positive">Unban</q-item-section>
+                  </q-item>
+
+                  <q-item v-if="isOwner && !isBanned(userItem.id)" clickable v-close-popup @click="banUser(userItem)">
+                    <q-item-section class="text-negative">Ban</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
             </q-item-section>
           </q-item>
         </div>
@@ -132,6 +136,11 @@ const otherUsers = computed(() => {
   return userStore.users.filter(u => !inIds.includes(u.id))
 })
 
+const isBanned = (userId: number) => {
+  if (!activeChannelId.value) return false
+  return userChannelsStore.isBanned(userId, activeChannelId.value)
+}
+
 async function openProfile(user: User) {
   await router.push(`/profile/${user.id}`)
 }
@@ -151,6 +160,12 @@ function banUser(user: User) {
   if (!activeChannelId.value) return
   userChannelsStore.banUser(user.id, activeChannelId.value)
   $q.notify({ type: 'negative', message: `Banned ${user.nickname}` })
+}
+
+function unbanUser(user: User) {
+  if (!activeChannelId.value) return
+  userChannelsStore.unbanUser(user.id, activeChannelId.value)
+  $q.notify({ type: 'positive', message: `Unbanned ${user.nickname}` })
 }
 
 function voteBanUser(user: User) {

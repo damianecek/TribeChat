@@ -54,6 +54,10 @@ export default boot(() => {
       }
     });
 
+    socket.on('user:created', (user) => {
+      userStore.addUser(user);
+    });
+
     // === CHANNEL CRUD EVENTS ===
     socket.on('response:channels', (channels: Channel[]) => {
       channelsStore.setChannels(channels);
@@ -117,6 +121,11 @@ export default boot(() => {
         }
       }
     );
+
+    socket.on('member:unbanned', ({ userId, channelId }: { userId: number; channelId: string }) => {
+      console.log(`✅ member:unbanned user:${userId} from channel:${channelId}`);
+      userChannelsStore.removeBan(userId, channelId);
+    });
 
     socket.on(
       'member:banVote',

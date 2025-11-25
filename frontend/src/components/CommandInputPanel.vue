@@ -56,9 +56,11 @@ const executeCommand = (input: string): boolean => {
 
   switch (cmd) {
     case 'join': {
-      const channelName = args.join(' ') || 'general'
+      const isPrivate = args.includes('--private')
+      const filteredArgs = args.filter((a) => a !== '--private')
+      const channelName = filteredArgs.join(' ') || 'general'
       try {
-        addOrGetChannel(channelName)
+        addOrGetChannel(channelName, !isPrivate)
       } catch (err) {
         const msg = getErrorMessage(err)
         $q.notify({ type: 'negative', message: `Join failed: ${msg}` })
@@ -102,8 +104,12 @@ const executeCommand = (input: string): boolean => {
         return true
       }
       try {
-        kickUserFromChannel(userId)
-        $q.notify({ type: 'positive', message: `Kicked ${userId}` })
+        const action = kickUserFromChannel(userId)
+        if (action === 'kicked') {
+          $q.notify({ type: 'positive', message: `Kicked ${userId}` })
+        } else {
+          $q.notify({ type: 'warning', message: `Voted to ban ${userId}` })
+        }
       } catch (err) {
         $q.notify({ type: 'negative', message: getErrorMessage(err) })
       }

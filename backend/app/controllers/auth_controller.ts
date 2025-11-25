@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
+import { getIo } from '#start/ws'
 
 export default class AuthController {
   /**
@@ -10,9 +11,18 @@ export default class AuthController {
     const data = request.only(['firstName', 'lastName', 'nickname', 'email', 'password'])
 
     try {
-      const user = await User.create(data)
+      const user = await User.create({ ...data, status: 'Offline' })
 
       const token = await User.accessTokens.create(user)
+
+      getIo().emit('user:created', {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        nickname: user.nickname,
+        email: user.email,
+        status: user.status,
+      })
 
       return response.created({
         message: 'User registered successfully',

@@ -108,11 +108,11 @@ app.ready(() => {
 
     console.log(`🟢 Connected: ${socket.id}, userId: ${userId}`)
 
-    // Send current ban list to this user so UI can render badges after refresh
-    const userBans = await Blacklist.query().where('user_id', userId).andWhere('is_permanent', true)
+    // Send current ban list so UI can render badges after refresh
+    const allBans = await Blacklist.query().where('is_permanent', true)
     socket.emit(
       'member:banned:init',
-      userBans.map((ban) => ({
+      allBans.map((ban) => ({
         userId: ban.userId,
         channelId: ban.channelId,
         isPermanent: ban.isPermanent,
@@ -319,6 +319,31 @@ app.ready(() => {
           await finalizeBan(targetId, channelId, 'admin')
         } catch (err) {
           console.error('❌ Ban error:', err)
+        }
+      }
+    )
+
+    // === ADMIN UNBAN ===
+    socket.on(
+      'member:unban',
+      async ({ targetId, channelId }: { targetId: number; channelId: string }) => {
+        try {
+          const channel = await Channel.find(channelId)
+          if (!channel) return socket.emit('error:member', { message: 'Channel not found.' })
+
+          if (channel.adminId !== userId)
+            return socket.emit('error:member', { message: 'Not authorized to unban.' })
+
+          await Blacklist.query()
+            .where('user_id', targetId)
+            .andWhere('channel_id', channelId)
+            .delete()
+
+          banVotes.delete(banVoteKey(channelId, targetId))
+          io?.emit('member:unbanned', { userId: targetId, channelId })
+          console.log(`✅ User ${targetId} unbanned from channel ${channelId}`)
+        } catch (err) {
+          console.error('❌ Unban error:', err)
         }
       }
     )
