@@ -136,6 +136,6 @@ onUnmounted(() => window.removeEventListener('resize', handleResize))
 
 <style scoped>
 body.body--dark .tab-root {
-  background-color: var(--q-dark-page);
+  background-color: transparent;
 }
 </style>
