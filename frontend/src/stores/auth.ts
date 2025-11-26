@@ -5,6 +5,7 @@ import { api } from 'src/boot/axios'
 import { useChannelsStore } from './channels'
 import { useUserChannelsStore } from './user_channels'
 import { useUserStore } from './user'
+import { useTabsStore } from './tabs'
 
 import type { User, Channel, UserChannel } from 'src/types'
 import type { AuthResponse, LoginCredentials, RegisterData } from 'src/types/auth'
@@ -160,10 +161,13 @@ export const useAuthStore = defineStore('auth', {
       const channelsStore = useChannelsStore()
       const userChannelsStore = useUserChannelsStore()
       const userStore = useUserStore()
+      const tabsStore = useTabsStore()
 
       channelsStore.setChannels([])
       userChannelsStore.setUserChannels([])
       userStore.clearCurrentUser()
+      tabsStore.tabs = []
+      tabsStore.activeTab = null
     },
   },
 })
