@@ -646,7 +646,7 @@ app.ready(() => {
   })
 
   // Periodically remove inactive channels
-  void cleanupInactiveChannels()
+
   setInterval(() => void cleanupInactiveChannels(), 1000 * 60 * 60)
 
   console.log('✅ Socket.IO server initialized')
