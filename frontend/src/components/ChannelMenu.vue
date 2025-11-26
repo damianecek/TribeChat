@@ -188,7 +188,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useQuasar } from 'quasar'
 import type { Channel } from 'src/types'
 import { useAuthStore } from 'stores/auth'
@@ -223,6 +223,18 @@ const myChannels = computed(() => {
     .map((uc) => uc.channelId)
   return channels.value.filter((ch) => userChannelIds.includes(ch.id))
 })
+
+watch(myChannels, (newChannels) => {
+  const allowedIds = newChannels.map(ch => ch.id)
+
+  // Find tabs that shouldn't exist anymore
+  const invalidTabs = tabsStore.tabs.filter(tab => !allowedIds.includes(tab.id))
+
+  invalidTabs.forEach(tab => {
+    tabsStore.closeTab(tab.id) // or whatever your store's close fn is
+  })
+})
+
 
 const otherChannels = computed(() => {
   if (!user.value) return channels.value
