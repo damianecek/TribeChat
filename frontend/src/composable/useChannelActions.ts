@@ -81,6 +81,24 @@ export function useChannelActions() {
     return ch;
   }
 
+  function quitActiveChannel() {
+    const activeId = tabsStore.activeTab?.id;
+    if (!activeId) return null;
+
+    const ch = channelsStore.channels.find((c) => c.id === activeId);
+    if (!ch) return null;
+
+    const uid = auth.user?.id;
+
+    if (ch.adminId === uid) {
+      channelsStore.deleteChannel(activeId);
+    }
+    else throw new Error('Only channel admin can delete the channel');
+
+    tabsStore.closeTab(activeId);
+    return ch;
+  }
+
   // === GET CURRENT CHANNEL ID ===
   function resolveChannelId(): string {
     const id = tabsStore.activeTab?.id;
@@ -141,13 +159,34 @@ export function useChannelActions() {
     }
   }
 
+  function revokeUserFromChannel(nickname: string) {
+    const user = userStore.findUserByName(nickname);
+    if (!user) throw new Error(`User ${nickname} not found`);
+
+    const channelId = resolveChannelId();
+    const inChannel = userChannelsStore.getChannelsForUser(user.id).includes(channelId);
+
+    if (!inChannel) throw new Error(`User ${nickname} is not in this channel`);
+
+    const channel = channelsStore.channels.find((c) => c.id === channelId);
+    const isOwner = channel?.adminId === auth.user?.id;
+
+    if (!isOwner) {
+      throw new Error(`Only channel owner can revoke users`);
+    }
+    userChannelsStore.kickUser(user.id, channelId);
+    console.log(`🔄 Revoked ${nickname} from #${channelId}`);
+  }
+
   return {
     openChannel,
     addOrGetChannel,
     joinChannelByName,
     cancelActiveChannel,
+    quitActiveChannel,
     listChannelMembers,
     inviteUserToChannel,
     kickUserFromChannel,
+    revokeUserFromChannel,
   };
 }

@@ -37,9 +37,11 @@ const auth = useAuthStore()
 const {
   addOrGetChannel,
   cancelActiveChannel,
+  quitActiveChannel,
   inviteUserToChannel,
   kickUserFromChannel,
   listChannelMembers,
+  revokeUserFromChannel,
 } = useChannelActions()
 
 let isTyping = false
@@ -120,6 +122,20 @@ const executeCommand = (input: string): boolean => {
       return true
     }
 
+    case 'quit': {
+      try {
+        const result = quitActiveChannel()
+        if (!result) {
+          $q.notify({ type: 'warning', message: 'No active channel to quit' })
+        } else {
+          $q.notify({ type: 'positive', message: `Quit #${result.channelName}` })
+        }
+      } catch (err) {
+        $q.notify({ type: 'negative', message: getErrorMessage(err) })
+      }
+      return true
+    }
+
     case 'invite': {
       const userId = args[0]
       if (!userId) {
@@ -148,6 +164,21 @@ const executeCommand = (input: string): boolean => {
         } else {
           $q.notify({ type: 'warning', message: `Voted to ban ${userId}` })
         }
+      } catch (err) {
+        $q.notify({ type: 'negative', message: getErrorMessage(err) })
+      }
+      return true
+    }
+
+    case 'revoke': {
+      const userId = args[0]
+      if (!userId) {
+        $q.notify({ type: 'warning', message: 'Usage: /revoke <userId>' })
+        return true
+      }
+      try {
+        revokeUserFromChannel(userId)
+        $q.notify({ type: 'positive', message: `Revoked ${userId}` })
       } catch (err) {
         $q.notify({ type: 'negative', message: getErrorMessage(err) })
       }
