@@ -28,6 +28,7 @@ export const useMessagesStore = defineStore('messages', () => {
   function addMessage(msg: chatMessage) {
     // ✅ Nepridávaj duplicitné správy (rovnaké id)
     if (messages.value.some((m) => m.id === msg.id)) return;
+    console.log('Adding message:', msg);
 
     // ✅ Nepridávaj rovnaký obsah od rovnakého autora v rovnaký čas
     const duplicate = messages.value.find(

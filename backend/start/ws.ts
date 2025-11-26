@@ -160,6 +160,7 @@ app.ready(() => {
           channelId: channel.id,
         })
 
+        socket.join(`channel:${channel.id}`)
         io?.emit('channel:created', channel)
         console.log(`🟢 Channel created: ${name} by ${userId}`)
       } catch (err) {
@@ -429,6 +430,13 @@ app.ready(() => {
           await message.load('author')
           await Channel.query().where('id', channelId).update({ lastMessage: DateTime.local() })
 
+          const room = io.sockets.adapter.rooms.get(`channel:${channelId}`)
+
+          console.log('📡 Broadcast recipients for message:', {
+            channel: `channel:${channelId}`,
+            receivers: room ? [...room] : [], // convert Set to array of socket IDs
+          })
+
           // ✅ iba broadcast do roomu (bez duplicity pre odosielateľa)
           io?.to(`channel:${channelId}`).emit('message:new', {
             id: message.id,
@@ -528,19 +536,19 @@ app.ready(() => {
           return
         }
 
-        if (!channel.isPublic && channel.adminId !== userId && !isInvited(userId!, channelId)) {
-          socket.emit('error:member', { message: 'Invite required to join this private channel.' })
-          return
-        }
-
         const existing = await UserChannel.query()
           .where('user_id', userId!)
           .andWhere('channel_id', channelId)
           .first()
 
         if (existing) {
+          console.log(`🟢 User ${userId} re-joined channel ${channelId}`)
           socket.join(`channel:${channelId}`)
           clearPendingInvite(userId!, channelId)
+          return
+        }
+        if (!channel.isPublic && channel.adminId !== userId && !isInvited(userId!, channelId)) {
+          socket.emit('error:member', { message: 'Invite required to join this private channel.' })
           return
         }
 
