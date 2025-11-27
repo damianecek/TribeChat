@@ -117,6 +117,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async fetchInitialData() {
+      console.log('Fetching initial data for auth store...')
       const channelsStore = useChannelsStore();
       const userChannelsStore = useUserChannelsStore();
       const userStore = useUserStore();

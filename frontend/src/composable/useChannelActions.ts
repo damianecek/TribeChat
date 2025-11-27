@@ -128,9 +128,11 @@ export function useChannelActions() {
 
     const channelId = resolveChannelId();
     const alreadyIn = userChannelsStore.getChannelsForUser(user.id).includes(channelId);
+    const channel = channelsStore.channels.find((c) => c.id === channelId);
 
     if (alreadyIn) throw new Error(`User ${nickname} is already in this channel`);
-
+    const isOwner = channel?.adminId === auth.user?.id;
+    if (isOwner) userChannelsStore.unbanUser(user.id, channelId);
     userChannelsStore.inviteUser(user.id, channelId);
     console.log(`✅ Invited ${nickname} to #${channelId}`);
   }

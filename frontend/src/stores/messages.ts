@@ -6,8 +6,7 @@ import { useAuthStore } from 'stores/auth';
 import { useTabsStore } from 'stores/tabs';
 import { useChannelsStore } from 'stores/channels';
 import { useUserChannelsStore } from 'stores/user_channels';
-import { Notify } from 'quasar';
-
+import { Notify, useQuasar } from 'quasar';
 
 interface ServerMessage {
   id: string;
@@ -24,13 +23,12 @@ export const useMessagesStore = defineStore('messages', () => {
   const tabsStore = useTabsStore();
   const channelsStore = useChannelsStore();
   const userChannelsStore = useUserChannelsStore();
+  const $q = useQuasar();
 
-  function addMessage(msg: chatMessage) {
-    // ✅ Nepridávaj duplicitné správy (rovnaké id)
+  // === HELPERS ===
+  function addMessage(msg: chatMessage, prepend = false) {
     if (messages.value.some((m) => m.id === msg.id)) return;
-    console.log('Adding message:', msg);
 
-    // ✅ Nepridávaj rovnaký obsah od rovnakého autora v rovnaký čas
     const duplicate = messages.value.find(
       (m) =>
         m.chatId === msg.chatId &&
@@ -40,7 +38,11 @@ export const useMessagesStore = defineStore('messages', () => {
     );
     if (duplicate) return;
 
-    messages.value.push(msg);
+    if (prepend) {
+      messages.value.unshift(msg);
+    } else {
+      messages.value.push(msg);
+    }
   }
 
   function deleteMessage(id: string) {
@@ -57,94 +59,107 @@ export const useMessagesStore = defineStore('messages', () => {
   }
 
   function sendMessage(chatId: string, content: string) {
-    if (!socket) return;
+    if (!socket || !content.trim()) return;
     socket.emit('message:send', { channelId: chatId, content });
   }
 
-  function fetchMessages(channelId: string) {
+  // === FETCH WITH PAGINATION ===
+  function fetchMessages(channelId: string, limit = 50) {
     if (!socket) return;
-    socket.emit('message:fetch', channelId);
+
+    const firstMessageId = messages.value.find((m) => m.chatId === channelId)?.id;
+
+    socket.emit('message:fetch', { channelId, beforeId: firstMessageId, limit });
   }
 
   function truncate(str: string, max: number = 15) {
-    return str.length > max ? str.slice(0, max) + "..." : str;
+    return str.length > max ? str.slice(0, max) + '...' : str;
   }
 
   function isMention(msg: string, username: string): boolean {
-    const myUsername = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // escape
-    const regex = new RegExp(`@${myUsername}(?![a-zA-Z0-9_])`)
-    return regex.test(msg)
+    const escaped = username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`@${escaped}(?![a-zA-Z0-9_])`);
+    return regex.test(msg);
   }
 
+  // === SOCKET EVENTS ===
   if (socket) {
     socket.on('message:new', (msg: ServerMessage) => {
       const currentUserId = Number(auth.user?.id);
       const authorId = Number(msg.authorId);
 
-      const messageData = {
+      const messageData: chatMessage = {
         id: msg.id,
         chatId: msg.channelId,
         author: msg.author?.nickname || 'Unknown',
         content: msg.content,
         timestamp: new Date(msg.createdAt),
-        sent: authorId === currentUserId
+        sent: authorId === currentUserId,
       };
 
-      const isOwnMessage = authorId === currentUserId;
-
-      // Add message
       addMessage(messageData);
+
       const activeChannelId = tabsStore.activeTab?.id;
       const isViewingChannel = activeChannelId === messageData.chatId;
+      const notificationsSetting = userChannelsStore.getNotificationSetting(
+        messageData.chatId,
+        currentUserId,
+      );
 
-      const notificationsSetting = userChannelsStore.getNotificationSetting(messageData.chatId, currentUserId);
-
-      if (notificationsSetting === 'silent' || auth.user?.status === 'DND') {
-        console.log(notificationsSetting, auth.user?.status);
-        return; // No notifications
-      }
-      else if (notificationsSetting === 'mentions' && !isMention(messageData.content, auth.user!.nickname)) {
+      if (notificationsSetting === 'silent' || auth.user?.status === 'DND') return;
+      if (
+        notificationsSetting === 'mentions' &&
+        !isMention(messageData.content, auth.user!.nickname)
+      )
         return;
-      }
 
-      // 🔔 Show notification ONLY if:
-      // - It's not your own message
-      // - The user is NOT currently viewing that chat (optional)
-      if (!isOwnMessage && !isViewingChannel) {
+      if (!messageData.sent && !isViewingChannel) {
         userChannelsStore.markUnread(messageData.chatId, currentUserId);
-        const channel = channelsStore.channels.find(c => c.id === messageData.chatId);
-        const channelName = channel ? channel.channelName : 'unkonwn channel';
-        Notify.create({
-          message: `CH>${channelName}|User>${messageData.author}: ${truncate(messageData.content)}`,
-          color: 'primary',
-          icon: 'chat',
-          position: 'bottom-right',
-          timeout: 2500
-        });
+        const channel = channelsStore.channels.find((c) => c.id === messageData.chatId);
+        const channelName = channel?.channelName || 'unknown channel';
+        if ($q.appVisible) {
+          Notify.create({
+            message: `CH>${channelName}|User>${messageData.author}: ${truncate(messageData.content)}`,
+            color: 'primary',
+            icon: 'chat',
+            position: 'bottom-right',
+            timeout: 2500,
+          });
+        } else {
+          Notify.create({
+            message: `CH>${channelName}|User>${messageData.author}: ${truncate(messageData.content)}`,
+            color: 'primary',
+            icon: 'chat',
+            position: 'bottom-right',
+            actions: [{ icon: 'close', color: 'white', round: true, handler: () => {} }],
+            timeout: 0,
+          });
+        }
       }
     });
 
+    socket.on('message:deleted', ({ id }: { id: string }) => deleteMessage(id));
 
-    socket.on('message:deleted', ({ id }: { id: string }) => {
-      deleteMessage(id);
-    });
-
-    socket.on('message:updated', (msg: ServerMessage) => {
-      updateMessage(msg.id, msg.content);
-    });
+    socket.on('message:updated', (msg: ServerMessage) => updateMessage(msg.id, msg.content));
 
     socket.on('message:list', (list: ServerMessage[]) => {
+      if (!list.length) {
+        return;
+      } // no more messages to fetch
+
       const currentUserId = Number(auth.user?.id);
-      list.forEach((msg) => {
-        const authorId = Number(msg.authorId);
-        addMessage({
-          id: msg.id,
-          chatId: msg.channelId,
-          author: msg.author?.nickname || 'Unknown',
-          content: msg.content,
-          timestamp: new Date(msg.createdAt),
-          sent: authorId === currentUserId,
-        });
+      list.reverse().forEach((msg) => {
+        addMessage(
+          {
+            id: msg.id,
+            chatId: msg.channelId,
+            author: msg.author?.nickname || 'Unknown',
+            content: msg.content,
+            timestamp: new Date(msg.createdAt),
+            sent: Number(msg.authorId) === currentUserId,
+          },
+          true,
+        ); // prepend older messages
       });
     });
   }

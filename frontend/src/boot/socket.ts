@@ -30,12 +30,6 @@ export default boot(() => {
       console.log('✅ WS connected:', socket?.id);
       socket?.emit('request:channels');
 
-      // 🔁 Rejoin all channels where the user is member
-      const userId = auth.user?.id;
-      if (userId) {
-        const userChannels = userChannelsStore.getChannelsForUser(userId);
-        userChannels.forEach((cid) => socket?.emit('member:join', cid));
-      }
     });
 
     socket.on('disconnect', (reason) => {

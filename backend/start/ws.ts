@@ -108,6 +108,12 @@ app.ready(() => {
 
     console.log(`🟢 Connected: ${socket.id}, userId: ${userId}`)
 
+    const userChannels = await UserChannel.query().where('user_id', userId)
+    for (const membership of userChannels) {
+      socket.join(`channel:${membership.channelId}`)
+    }
+    console.log(`🔗 User ${userId} auto-joined ${userChannels.length} channels`)
+
     // Send current ban list so UI can render badges after refresh
     const allBans = await Blacklist.query().where('is_permanent', true)
     socket.emit(
@@ -244,7 +250,7 @@ app.ready(() => {
           const channel = await Channel.find(channelId)
           if (!channel) return socket.emit('error:member', { message: 'Channel not found.' })
 
-          if (channel.adminId !== userId)
+          if (channel.adminId !== userId && channel.isPublic === false)
             return socket.emit('error:member', { message: 'Not authorized to invite.' })
 
           const isBanned = await Blacklist.query()
@@ -456,28 +462,55 @@ app.ready(() => {
     )
 
     // === FETCH ALL MESSAGES IN CHANNEL ===
-    socket.on('message:fetch', async (channelId: string) => {
-      try {
-        const membership = await UserChannel.query()
-          .where('user_id', userId!)
-          .andWhere('channel_id', channelId)
-          .first()
-        if (!membership) {
-          socket.emit('error:message', { message: 'Join the channel to view messages.' })
-          return
+    socket.on(
+      'message:fetch',
+      async ({
+        channelId,
+        beforeId,
+        limit = 50,
+      }: {
+        channelId: string
+        beforeId?: string
+        limit?: number
+      }) => {
+        try {
+          const membership = await UserChannel.query()
+            .where('user_id', userId!)
+            .andWhere('channel_id', channelId)
+            .first()
+          if (!membership) {
+            socket.emit('error:message', { message: 'Join the channel to view messages.' })
+            return
+          }
+
+          let query = Message.query()
+            .where('channel_id', channelId)
+            .preload('author')
+            .orderBy('created_at', 'desc') // newest first
+
+          if (beforeId) {
+            // fetch messages older than a given message ID
+            const beforeMessage = await Message.find(beforeId)
+            if (beforeMessage) {
+              query = query.where('created_at', '<', beforeMessage.createdAt)
+            }
+          }
+
+          const messages = await query.limit(limit)
+          socket.emit(
+            'message:list',
+            messages.reverse() // reverse to send oldest first
+          )
+          console.log(
+            `📜 Sent ${messages.length} messages for channel ${channelId} ${
+              beforeId ? `before ${beforeId}` : '(latest batch)'
+            }`
+          )
+        } catch (err) {
+          console.error('❌ message:fetch error', err)
         }
-
-        const messages = await Message.query()
-          .where('channel_id', channelId)
-          .orderBy('created_at', 'asc')
-          .preload('author')
-
-        socket.emit('message:list', messages)
-        console.log(`📜 Sent ${messages.length} messages for channel ${channelId}`)
-      } catch (err) {
-        console.error('❌ message:fetch error', err)
       }
-    })
+    )
 
     // === DELETE MESSAGE ===
     socket.on('message:delete', async (id: string) => {
