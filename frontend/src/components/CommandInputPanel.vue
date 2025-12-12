@@ -71,7 +71,7 @@ function onTyping() {
   typingTimeout = setTimeout(() => {
     isTyping = false
     socket?.emit("typing:stop", { channelId })
-  }, 5000)
+  }, 1200)
 }
 
 

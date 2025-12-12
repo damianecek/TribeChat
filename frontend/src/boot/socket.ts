@@ -5,6 +5,7 @@ import { useAuthStore } from 'src/stores/auth';
 import { useChannelsStore } from 'stores/channels';
 import { useUserChannelsStore } from 'stores/user_channels';
 import { useUserStore } from 'stores/user';
+import { useMessagesStore } from 'stores/messages';
 import type { Channel, UserStatus } from 'src/types';
 
 let socket: Socket | null = null;
@@ -14,6 +15,7 @@ export default boot(() => {
   const channelsStore = useChannelsStore();
   const userChannelsStore = useUserChannelsStore();
   const userStore = useUserStore();
+  const messagesStore = useMessagesStore();
 
   function connectSocket() {
     if (socket) return;
@@ -36,6 +38,8 @@ export default boot(() => {
       console.log('🔴 WS disconnected:', reason);
       socket = null;
     });
+
+    messagesStore.initSocketListeners();
 
     // === USER STATUS (Online / Offline / Away / DND) ===
     socket.on('user:status', ({ userId, status }: { userId: number; status: UserStatus }) => {
@@ -152,9 +156,15 @@ export default boot(() => {
 
   // === Auth watch ===
   auth.$subscribe((_, state) => {
-    if (state.token && !socket) connectSocket();
+    if (state.token && !socket && auth.user?.status !== 'Offline') connectSocket();
     if (!state.token && socket) {
+      messagesStore.cleanup();
       console.log('🔴 Disconnecting socket (logout)...');
+      socket.disconnect();
+      socket = null;
+    }
+    if (socket && auth.user?.status === 'Offline' ) {
+      console.log('🔴 Disconnecting socket (set offline)...');
       socket.disconnect();
       socket = null;
     }

@@ -40,7 +40,9 @@ export const useMessagesStore = defineStore('messages', () => {
 
     if (prepend) {
       messages.value.unshift(msg);
+      console.log('Prepended message', msg);
     } else {
+      console.log('Added message', msg);
       messages.value.push(msg);
     }
   }
@@ -82,8 +84,12 @@ export const useMessagesStore = defineStore('messages', () => {
     return regex.test(msg);
   }
 
-  // === SOCKET EVENTS ===
-  if (socket) {
+  function initSocketListeners(){
+    if (!socket) return;
+    cleanup();
+    console.log('Initializing message socket listeners...');
+
+    // === MESSAGE EVENTS ===
     socket.on('message:new', (msg: ServerMessage) => {
       const currentUserId = Number(auth.user?.id);
       const authorId = Number(msg.authorId);
@@ -119,7 +125,7 @@ export const useMessagesStore = defineStore('messages', () => {
         const channelName = channel?.channelName || 'unknown channel';
         if ($q.appVisible) {
           Notify.create({
-            message: `CH>${channelName}|User>${messageData.author}: ${truncate(messageData.content)}`,
+            message: `CH>${channelName} | User>${messageData.author}: ${truncate(messageData.content)}`,
             color: 'primary',
             icon: 'chat',
             position: 'bottom-right',
@@ -127,7 +133,7 @@ export const useMessagesStore = defineStore('messages', () => {
           });
         } else {
           Notify.create({
-            message: `CH>${channelName}|User>${messageData.author}: ${truncate(messageData.content)}`,
+            message: `CH>${channelName} | User>${messageData.author}: ${truncate(messageData.content)}`,
             color: 'primary',
             icon: 'chat',
             position: 'bottom-right',
@@ -164,6 +170,19 @@ export const useMessagesStore = defineStore('messages', () => {
     });
   }
 
+  function cleanup() {
+    if (!socket) return;
+
+    socket.off('message:new');
+    socket.off('message:deleted');
+    socket.off('message:updated');
+    socket.off('message:list');
+
+    tabsStore.tabs = []
+    tabsStore.activeTab = null
+    messages.value = [];
+  }
+
   return {
     messages,
     addMessage,
@@ -172,6 +191,8 @@ export const useMessagesStore = defineStore('messages', () => {
     getMessages,
     sendMessage,
     fetchMessages,
+    initSocketListeners,
+    cleanup
   };
 });
 

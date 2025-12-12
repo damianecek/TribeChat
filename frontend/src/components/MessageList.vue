@@ -1,6 +1,6 @@
 <template>
   <q-scroll-area ref="scrollAreaRef" class="fit column">
-    <q-infinite-scroll reverse :offset="150" @load="onLoadMore">
+    <q-infinite-scroll reverse :offset="0" @load="onLoadMore">
       <template v-slot:loading v-if="messages.length > 20">
         <div class="row justify-center q-my-md">
           <q-spinner color="primary" name="dots" size="40px" />
@@ -73,10 +73,11 @@ const typingUsers = reactive<{
   [id: string]: { username: string; draft: string; expanded: boolean };
 }>({});
 
+
 // ======== LIFECYCLE ========
 onMounted(() => {
-  if (activeChannelId.value) {
-    messagesStore.fetchMessages(activeChannelId.value);
+  if (activeChannelId.value && messages.value.length === 0) {
+      messagesStore.fetchMessages(activeChannelId.value);
   }
   setupTypingListeners();
 });
@@ -99,13 +100,15 @@ watch(
 // Triggered by q-infinite-scroll when scroll reaches top
 function onLoadMore(index: number, done: (stop?: boolean) => void) {
   const scrollEl = scrollAreaRef.value?.$el?.querySelector('.scroll');
-  if (!scrollEl) return done();
+  if (!scrollEl) return done(); // no more messages
 
-  const SCROLL_OFFSET = 0; // ← how far down to reposition after load
+  const SCROLL_OFFSET = 50; // ← how far down to reposition after load
 
   // store current height before new messages arrive
 
-  messagesStore.fetchMessages(activeChannelId.value);
+  if (messages.value.length > 20) {
+    messagesStore.fetchMessages(activeChannelId.value);
+  }
 
   // wait for DOM update → then adjust scroll position
   setTimeout(() => {
@@ -172,6 +175,7 @@ watch(messages, async () => {
     scrollEl.scrollTop = scrollEl.scrollHeight;
   }
 });
+
 
 // ======== MENTION DETECTION ========
 function isMention(text: string) {
