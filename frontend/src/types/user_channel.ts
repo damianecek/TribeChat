@@ -1,4 +1,9 @@
+export type NotificationSetting = 'silent' | 'mentions' | 'all'
+
 export interface UserChannel{
-  user_id: number
-  channel_id: string
+  id: string
+  userId: number
+  channelId: string
+  createdAt: Date
+  updatedAt: Date
 }

@@ -14,12 +14,12 @@
 
           <q-item v-for="userItem in usersInChannel" :key="userItem.id" clickable>
             <q-item-section avatar>
-              <q-avatar :icon="userItem.icon || 'person'" color="primary" text-color="white" class="status-avatar"
+              <q-avatar :icon="'person'" color="primary" text-color="white" class="status-avatar"
                 :style="{ '--status-color': getStatusColor(userItem.status) }" />
             </q-item-section>
 
             <q-item-section>
-              <q-item-label class="user-name">{{ userItem.firstName }}</q-item-label>
+              <q-item-label class="user-name">{{ userItem.nickname }}</q-item-label>
               <q-item-label caption>{{ userItem.status }}</q-item-label>
             </q-item-section>
 
@@ -27,7 +27,6 @@
               <q-btn dense flat round icon="more_vert" @click.stop>
                 <q-menu auto-close class="no-shadow">
                   <q-list style="min-width: 130px">
-                    <!-- Profile -->
                     <q-item clickable v-close-popup @click="openProfile(userItem)">
                       <q-item-section>Profile</q-item-section>
                     </q-item>
@@ -42,7 +41,7 @@
                       <q-item-section class="text-negative">Ban</q-item-section>
                     </q-item>
 
-                    <q-item v-else-if="!isOwner" clickable v-close-popup @click="voteBanUser(userItem)">
+                    <q-item v-else clickable v-close-popup @click="voteBanUser(userItem)">
                       <q-item-section class="text-negative">Vote Ban</q-item-section>
                     </q-item>
                   </q-list>
@@ -57,37 +56,38 @@
           <div class="text-caption text-grey q-pl-sm q-mb-xs">Other users</div>
 
           <q-item v-for="userItem in otherUsers" :key="userItem.id">
-            <q-item-section avatar>
-              <q-avatar :icon="userItem.icon || 'person'" color="primary" text-color="white" class="status-avatar"
-                :style="{ '--status-color': getStatusColor(userItem.status) }" />
-            </q-item-section>
+          <q-item-section avatar>
+            <q-avatar :icon="'person'" color="primary" text-color="white" class="status-avatar"
+              :style="{ '--status-color': getStatusColor(userItem.status) }" />
+          </q-item-section>
 
-            <q-item-section>
-              <q-item-label class="user-name">{{ userItem.firstName }}</q-item-label>
-              <q-item-label caption>{{ userItem.status }}</q-item-label>
-            </q-item-section>
+          <q-item-section>
+            <q-item-label class="user-name">{{ userItem.nickname }}</q-item-label>
+            <q-item-label caption>{{ userItem.status }}</q-item-label>
+          </q-item-section>
 
-            <q-item-section side>
-              <q-btn dense flat round icon="more_vert" @click.stop>
-                <q-menu auto-close class="no-shadow">
-                  <q-list style="min-width: 130px">
-                    <!-- Profile -->
-                    <q-item clickable v-close-popup @click="openProfile(userItem)">
-                      <q-item-section>Profile</q-item-section>
-                    </q-item>
+          <q-item-section side>
+            <q-btn dense flat round icon="more_vert" @click.stop>
+              <q-menu auto-close class="no-shadow">
+                <q-list style="min-width: 130px">
+                  <q-item clickable v-close-popup @click="openProfile(userItem)">
+                    <q-item-section>Profile</q-item-section>
+                  </q-item>
 
-                    <!-- Invite -->
-                    <q-item clickable v-close-popup @click="inviteUser(userItem)">
-                      <q-item-section class="text-positive">Invite</q-item-section>
-                    </q-item>
+                  <q-item v-if="!isOwner || !isBanned(userItem.id)" clickable v-close-popup @click="inviteUser(userItem)">
+                    <q-item-section class="text-positive">Invite</q-item-section>
+                  </q-item>
 
-                    <!-- Owner can ban -->
-                    <q-item v-if="isOwner" clickable v-close-popup @click="banUser(userItem)">
-                      <q-item-section class="text-negative">Ban</q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
+                  <q-item v-if="isOwner && isBanned(userItem.id)" clickable v-close-popup @click="unbanUser(userItem)">
+                    <q-item-section class="text-positive">Unban</q-item-section>
+                  </q-item>
+
+                  <q-item v-if="isOwner && !isBanned(userItem.id)" clickable v-close-popup @click="banUser(userItem)">
+                    <q-item-section class="text-negative">Ban</q-item-section>
+                  </q-item>
+                </q-list>
+              </q-menu>
+            </q-btn>
             </q-item-section>
           </q-item>
         </div>
@@ -99,68 +99,79 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useQuasar } from 'quasar'
 import { useChannelsStore } from 'stores/channels'
 import { useUserChannelsStore } from 'stores/user_channels'
 import { useUserStore } from 'stores/user'
 import { useTabsStore } from 'stores/tabs'
+import { useAuthStore } from 'stores/auth'
 import type { User } from 'src/types/user'
 
 const router = useRouter()
+const $q = useQuasar()
 const tabsStore = useTabsStore()
 const channelsStore = useChannelsStore()
 const userChannelsStore = useUserChannelsStore()
 const userStore = useUserStore()
+const auth = useAuthStore()
 
-const activeTab = computed(() => tabsStore.activeTab)
-
-const users = computed<User[]>(() => [
-  { id: 2, firstName: 'Alice', lastName: 'Blue', nickname: 'aliceb', email: 'a@a.com', status: 'Online', icon: 'person' },
-  { id: 3, firstName: 'Bob', lastName: 'Green', nickname: 'bobbyg', email: 'b@b.com', status: 'Away', icon: 'person' },
-  { id: 4, firstName: 'Charlie', lastName: 'Red', nickname: 'charlier', email: 'c@c.com', status: 'Offline', icon: 'person' }
-])
-
-users.value.forEach(u => userStore.addUser(u))
-
+const activeChannelId = computed(() => tabsStore.activeTab?.id || '')
+const users = computed(() => userStore.users)
 
 const isOwner = computed(() => {
-  const ch = channelsStore.channels.find(ch => ch.id === tabsStore.activeTab)
-  return !!ch?.user_id
+  const ch = channelsStore.channels.find(ch => ch.id === activeChannelId.value)
+  return ch?.adminId === auth.user?.id
 })
 
-
-
 const usersInChannel = computed(() => {
-  const uc = userChannelsStore.userChannels
-    .filter(link => link.channel_id === activeTab.value)
-    .map(link => link.user_id)
-  return users.value.filter(u => uc.includes(u.id))
+  const memberIds = userChannelsStore
+    .userChannels
+    .filter(link => link.channelId === activeChannelId.value)
+    .map(link => link.userId)
+  return userStore.users.filter(u => memberIds.includes(u.id))
 })
 
 const otherUsers = computed(() => {
   const inIds = usersInChannel.value.map(u => u.id)
-  return users.value.filter(u => !inIds.includes(u.id))
+  return userStore.users.filter(u => !inIds.includes(u.id))
 })
+
+const isBanned = (userId: number) => {
+  if (!activeChannelId.value) return false
+  return userChannelsStore.isBanned(userId, activeChannelId.value)
+}
 
 async function openProfile(user: User) {
   await router.push(`/profile/${user.id}`)
 }
 
 function inviteUser(user: User) {
-  if (!activeTab.value) return
-  userChannelsStore.addUserToChannel(user.id, activeTab.value)
+  if (!activeChannelId.value) return
+  userChannelsStore.inviteUser(user.id, activeChannelId.value)
+  $q.notify({ type: 'positive', message: `Invited ${user.nickname}` })
 }
 
 function kickUser(user: User) {
-  if (!activeTab.value) return
-  userChannelsStore.removeUserFromChannel(user.id, activeTab.value)
+  if (!activeChannelId.value) return
+  userChannelsStore.kickUser(user.id, activeChannelId.value)
 }
 
 function banUser(user: User) {
-  console.log(`Ban ${user.firstName}`)
+  if (!activeChannelId.value) return
+  userChannelsStore.banUser(user.id, activeChannelId.value)
+  $q.notify({ type: 'negative', message: `Banned ${user.nickname}` })
+}
+
+function unbanUser(user: User) {
+  if (!activeChannelId.value) return
+  userChannelsStore.unbanUser(user.id, activeChannelId.value)
+  $q.notify({ type: 'positive', message: `Unbanned ${user.nickname}` })
 }
 
 function voteBanUser(user: User) {
-  console.log(`Vote ban for ${user.firstName}`)
+  if (!activeChannelId.value) return
+  userChannelsStore.voteBanUser(user.id, activeChannelId.value)
+  $q.notify({ type: 'warning', message: `Voted to ban ${user.nickname}` })
 }
 
 function getStatusColor(status: string): string {
@@ -173,6 +184,7 @@ function getStatusColor(status: string): string {
   }
 }
 </script>
+
 
 <style scoped>
 .body--light .member-drawer-root {

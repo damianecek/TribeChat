@@ -1,6 +1,6 @@
 <template>
   <q-layout view="lHh Lpr lFf">
-    <q-drawer show-if-above v-model="ui.leftDrawerOpen" side="left" >
+    <q-drawer show-if-above v-model="ui.leftDrawerOpen" side="left" :width="360">
       <ChannelMenu />
     </q-drawer>
 

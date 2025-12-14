@@ -3,7 +3,6 @@
     <!-- Channel List -->
     <q-list class="channel-list col q-pa-md">
       <q-card class="q-card--bordered q-card--flat column no-shadow fit" :dark="$q.dark.isActive">
-        <!-- Toolbar -->
         <div class="q-pa-sm col-auto row justify-between items-center">
           <div class="text-subtitle5">Channels</div>
           <q-btn icon="add" color="primary" flat dense round size="sm" @click="showAddDialog = true" />
@@ -11,83 +10,109 @@
 
         <q-separator style="width: 95%; margin: 0 auto;" />
 
-        <q-scroll-area class="col fit">
-          <q-infinite-scroll class="channel-menu-element" @load="handleScrollLoad">
+<q-scroll-area class="col fit">
+  <q-infinite-scroll class="channel-menu-element" @load="handleScrollLoad">
+    <div v-if="invitedChannels.length" class="q-mt-sm">
+      <div class="text-caption text-grey q-pl-sm q-mb-xs">Invited</div>
 
-            <div v-if="myChannels.length" class="q-mt-sm">
-              <div class="text-caption text-grey q-pl-sm q-mb-xs">My Channels</div>
+      <q-item v-for="channel in invitedChannels" :key="channel.id" clickable
+        class="channel-menu-element items-center channel-invited" @click="confirmJoin(channel)">
+        <q-item-section>
+          <div class="row items-center no-wrap">
+            <span>{{ truncate(channel.channelName) }}</span>
+            <q-chip dense outline color="secondary" text-color="secondary" class="q-ml-sm">Invited</q-chip>
+            <q-icon v-if="!channel.isPublic" name="lock" size="16px" class="q-ml-sm text-grey" />
+          </div>
+        </q-item-section>
 
-              <q-item v-for="channel in myChannels" :key="channel.id" clickable
-                class="channel-menu-element items-center"
-                :class="{ 'channel-highlight': highlightedChannels.includes(channel.id) }"
-                @click="openChannel(channel)">
-                <q-item-section>
-                  <div class="row items-center no-wrap">
-                    <span>{{ channel.name }}</span>
-                    <q-icon v-if="!channel.is_public" name="lock" size="16px" class="q-ml-sm text-grey" />
-                    <q-icon v-if="channel.user_id" name="person" size="16px" class="q-ml-xs text-primary" />
-                  </div>
-                </q-item-section>
+        <q-item-section side>
+          <div class="row no-wrap items-center">
+            <q-btn dense flat round icon="check" color="positive" @click.stop="confirmJoin(channel)" />
+            <q-btn dense flat round icon="close" color="negative" @click.stop="declineChannel(channel)" />
+          </div>
+        </q-item-section>
+      </q-item>
+    </div>
 
-                <q-item-section side>
-                  <q-btn dense flat round icon="more_vert" @click.stop>
-                    <q-menu auto-close class="no-shadow">
-                      <q-list style="min-width: 120px">
-                        <q-item v-if="channel.user_id" clickable v-close-popup @click="openEditDialog(channel)">
-                          <q-item-section>Edit</q-item-section>
-                        </q-item>
+    <div v-if="myChannels.length" class="q-mt-sm">
+      <div class="text-caption text-grey q-pl-sm q-mb-xs">My Channels</div>
 
-                        <q-item clickable v-close-popup @click="leaveChannel(channel)">
-                          <q-item-section class="text-warning">Leave</q-item-section>
-                        </q-item>
+      <q-item v-for="channel in myChannels" :key="channel.id" clickable
+        class="channel-menu-element items-center"
+        :class="{ 'channel-highlight': hasUnread(channel.id) }"
+        @click="openChannel(channel)">
+        <q-item-section>
+          <div class="row items-center no-wrap">
+            <span>{{ truncate(channel.channelName) }}</span>
+            <q-icon v-if="!channel.isPublic" name="lock" size="16px" class="q-ml-sm text-grey" />
+            <q-icon v-if="channel.adminId === user?.id" name="person" size="16px"
+              class="q-ml-xs text-primary" />
+          </div>
+        </q-item-section>
 
-                        <q-item v-if="channel.user_id" clickable v-close-popup @click="deleteChannel(channel)">
-                          <q-item-section class="text-negative">Delete</q-item-section>
-                        </q-item>
-                      </q-list>
-                    </q-menu>
-                  </q-btn>
-                </q-item-section>
-              </q-item>
-            </div>
+        <q-item-section side>
+          <q-btn dense flat round icon="more_vert" @click.stop>
+            <q-menu auto-close class="no-shadow">
+              <q-list style="min-width: 120px">
+                <q-item v-if="channel.adminId === user?.id" clickable v-close-popup
+                  @click="openEditDialog(channel)">
+                  <q-item-section>Edit</q-item-section>
+                </q-item>
 
-            <div v-if="otherChannels.length" class="q-mt-md">
-              <div class="text-caption text-grey q-pl-sm q-mb-xs">Other Channels</div>
+                <q-item clickable v-close-popup @click="leaveChannel(channel)">
+                  <q-item-section class="text-warning">Leave</q-item-section>
+                </q-item>
 
-              <q-item v-for="channel in otherChannels" :key="channel.id" class="channel-menu-element items-center">
-                <q-item-section>
-                  <div class="row items-center no-wrap">
-                    <span>{{ channel.name }}</span>
-                    <q-icon v-if="!channel.is_public" name="lock" size="16px" class="q-ml-sm text-grey" />
-                  </div>
-                </q-item-section>
+                <q-item v-if="channel.adminId === user?.id" clickable v-close-popup
+                  @click="deleteChannel(channel)">
+                  <q-item-section class="text-negative">Delete</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+        </q-item-section>
+      </q-item>
+    </div>
 
-                <q-item-section side>
-                  <q-btn dense flat round icon="more_vert" @click.stop>
-                    <q-menu auto-close class="no-shadow">
-                      <q-list style="min-width: 120px">
-                        <q-item v-if="channel.user_id" clickable v-close-popup @click="openEditDialog(channel)">
-                          <q-item-section>Edit</q-item-section>
-                        </q-item>
+    <div v-if="otherChannels.length" class="q-mt-md">
+      <div class="text-caption text-grey q-pl-sm q-mb-xs">Other Channels</div>
 
-                        <q-item v-if="channel.is_public" clickable v-close-popup @click="joinChannel(channel)">
-                          <q-item-section class="text-positive">Join</q-item-section>
-                        </q-item>
-                      </q-list>
-                    </q-menu>
-                  </q-btn>
-                </q-item-section>
-              </q-item>
-            </div>
+      <q-item v-for="channel in otherChannels" :key="channel.id" class="channel-menu-element items-center">
+        <q-item-section>
+          <div class="row items-center no-wrap">
+            <span>{{ truncate(channel.channelName) }}</span>
+            <q-icon v-if="!channel.isPublic" name="lock" size="16px" class="q-ml-sm text-grey" />
+            <q-badge v-if="isBannedFromChannel(channel.id)" color="negative" class="q-ml-sm">Banned</q-badge>
+          </div>
+        </q-item-section>
 
-          </q-infinite-scroll>
-        </q-scroll-area>
+        <q-item-section side>
+          <q-btn dense flat round icon="more_vert" @click.stop>
+            <q-menu auto-close class="no-shadow">
+              <q-list style="min-width: 120px">
+                <q-item v-if="channel.adminId === user?.id" clickable v-close-popup
+                  @click="openEditDialog(channel)">
+                  <q-item-section>Edit</q-item-section>
+                </q-item>
 
+                <q-item v-if="channel.isPublic" clickable v-close-popup
+                  :disable="isBannedFromChannel(channel.id)"
+                  :title="isBannedFromChannel(channel.id) ? 'You are banned from this channel' : ''"
+                  @click="joinChannel(channel)">
+                  <q-item-section class="text-positive">Join</q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
+          </q-btn>
+        </q-item-section>
+      </q-item>
+    </div>
+  </q-infinite-scroll>
+</q-scroll-area>
       </q-card>
     </q-list>
 
-
-    <!-- Profile Box at Bottom -->
+    <!-- 🧍 Profile Box -->
     <div class="q-px-md q-pb-md q-mt-auto">
       <template v-if="isLoggedIn">
         <q-card class="channel-menu-element q-card--bordered q-card--flat no-shadow column" :dark="$q.dark.isActive">
@@ -102,14 +127,13 @@
               <div class="text-caption text-grey">{{ status }}</div>
             </q-item-section>
 
-            <!-- Arrow Button for Status -->
             <q-item-section side>
               <q-btn dense flat round icon="expand_more" @click.stop>
                 <q-menu auto-close class="no-shadow">
                   <q-list>
                     <q-item v-for="s in statusOptions" :key="s" clickable v-close-popup @click="status = s">
                       <q-item-section avatar>
-                        <q-icon name="circle" :style="{ 'color': getStatusColor(s) }" size="14px" />
+                        <q-icon name="circle" :style="{ color: getStatusColor(s) }" size="14px" />
                       </q-item-section>
                       <q-item-section>{{ s }}</q-item-section>
                     </q-item>
@@ -159,45 +183,74 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
-
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useQuasar } from 'quasar'
 import type { Channel } from 'src/types'
 import { useAuthStore } from 'stores/auth'
 import { useChannelsStore } from 'stores/channels'
 import { useTabsStore } from 'stores/tabs'
 import { useUserChannelsStore } from 'stores/user_channels'
 import type { UserStatus } from 'src/types/user'
+import { socket } from 'boot/socket'
+import { useUserStore } from 'stores/user'
 
 const router = useRouter()
+const $q = useQuasar()
 const auth = useAuthStore()
 const tabsStore = useTabsStore()
 const channelsStore = useChannelsStore()
 const userChannelsStore = useUserChannelsStore()
+const userStore = useUserStore()
+
 const isLoggedIn = computed(() => auth.isLoggedIn)
-const user = computed(() => auth.user)
+const user = computed(() => userStore.currentUser)
 const channels = computed(() => channelsStore.channels)
+
+const invitedChannelIds = computed(() => {
+  if (!user.value) return []
+  return userChannelsStore.getInvitationsForUser(user.value.id).map((inv) => inv.channelId)
+})
 
 const myChannels = computed(() => {
   if (!user.value) return []
-  const userChannelIds = userChannelsStore
-    .userChannels
-    .filter(uc => uc.user_id === user.value!.id)
-    .map(uc => uc.channel_id)
-  return channels.value.filter(ch => userChannelIds.includes(ch.id))
+  const userChannelIds = userChannelsStore.userChannels
+    .filter((uc) => uc.userId === user.value?.id)
+    .map((uc) => uc.channelId)
+  return channels.value.filter((ch) => userChannelIds.includes(ch.id))
 })
+
+watch(myChannels, (newChannels) => {
+  const allowedIds = newChannels.map(ch => ch.id)
+
+  // Find tabs that shouldn't exist anymore
+  const invalidTabs = tabsStore.tabs.filter(tab => !allowedIds.includes(tab.id))
+
+  invalidTabs.forEach(tab => {
+    tabsStore.closeTab(tab.id) // or whatever your store's close fn is
+  })
+})
+
 
 const otherChannels = computed(() => {
   if (!user.value) return channels.value
-  const userChannelIds = userChannelsStore
-    .userChannels
-    .filter(uc => uc.user_id === user.value!.id)
-    .map(uc => uc.channel_id)
-  return channels.value.filter(ch => !userChannelIds.includes(ch.id))
+  const userChannelIds = userChannelsStore.userChannels
+    .filter((uc) => uc.userId === user.value?.id)
+    .map((uc) => uc.channelId)
+  return channels.value.filter(
+    (ch) => !userChannelIds.includes(ch.id) && !invitedChannelIds.value.includes(ch.id)
+  )
+})
+
+const invitedChannels = computed(() => channels.value.filter((ch) => invitedChannelIds.value.includes(ch.id)))
+
+const bannedChannelIds = computed(() => {
+  if (!user.value) return []
+  return userChannelsStore.bans.filter((ban) => ban.userId === user.value?.id).map((ban) => ban.channelId)
 })
 
 const showAddDialog = ref(false)
@@ -207,23 +260,44 @@ const editChannelName = ref('')
 const newIsPublic = ref(false)
 const editIsPublic = ref(false)
 const channelBeingEdited = ref<Channel | null>(null)
-const status = ref<UserStatus>('Online')
 
 const statusOptions: UserStatus[] = ['Online', 'Away', 'Offline', 'DND']
 
-const goProfile = async () => {
-  await router.push('/profile')
+function setStatus(newStatus: UserStatus) {
+  if (!user.value) return
+  userStore.updateUserStatus(user.value.id, newStatus)
+  socket?.emit('user:setStatus', { status: newStatus })
+  void userStore.updateStatus(newStatus)
 }
 
+const status = computed<UserStatus>({
+  get: () => user.value?.status || 'Offline',
+  set: (newStatus) => setStatus(newStatus),
+})
+
+function getStatusColor(status: UserStatus): string {
+  switch (status) {
+    case 'Online': return 'limegreen'
+    case 'Away': return 'gold'
+    case 'DND': return 'orangered'
+    case 'Offline': return 'gray'
+    default: return 'lightgray'
+  }
+}
+
+const goProfile = async () => router.push('/profile')
+
+const isInvited = (channelId: string) => invitedChannelIds.value.includes(channelId)
+const isBannedFromChannel = (channelId: string) => bannedChannelIds.value.includes(channelId)
+
 function openChannel(channel: Channel) {
-  const existing = tabsStore.tabs.find(t => t.id === channel.id)
-  if (existing) {
-    tabsStore.setActiveTab(existing.id)
-  } else {
+  const existing = tabsStore.tabs.find((t) => t.id === channel.id)
+  if (existing) tabsStore.setActiveTab(existing.id)
+  else {
     tabsStore.addTab({
       id: channel.id,
-      label: channel.name,
-      content: `Welcome to #${channel.name}!`
+      label: channel.channelName,
+      content: `Welcome to #${channel.channelName}!`,
     })
     tabsStore.setActiveTab(channel.id)
   }
@@ -233,102 +307,90 @@ function addChannel() {
   if (!user.value) return
   const name = newChannelName.value.trim()
   if (!name) return
-
-  const newId = String(Date.now())
-  const is_public = !newIsPublic.value
-
-  const newChannel: Channel = {
-    id: newId,
-    name,
-    is_public,
-    user_id: true
-  }
-
-  channelsStore.addChannel(newChannel)
-
-  userChannelsStore.addUserToChannel(user.value.id, newId)
-
+  channelsStore.createChannel(name, newIsPublic.value)
   newChannelName.value = ''
   showAddDialog.value = false
-}
-
-function openEditDialog(channel: Channel) {
-  channelBeingEdited.value = channel
-  editChannelName.value = channel.name
-  editIsPublic.value = !channel.is_public
-  showEditDialog.value = true
 }
 
 function saveEdit() {
   if (!channelBeingEdited.value) return
   const updatedName = editChannelName.value.trim()
   if (!updatedName) return
-
-  channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, !editIsPublic.value)
+  channelsStore.updateChannel(channelBeingEdited.value.id, updatedName, editIsPublic.value)
   showEditDialog.value = false
 }
 
 function deleteChannel(channel: Channel) {
-  if (!user.value) return
-  userChannelsStore.removeUserFromChannel(user.value.id, channel.id)
+  if (!channel?.id) return
   channelsStore.deleteChannel(channel.id)
 }
 
-function getStatusColor(status: string): string {
-  switch (status.toLowerCase()) {
-    case 'online': return 'limegreen'
-    case 'away': return 'gold'
-    case 'dnd': return 'orangered'
-    case 'offline': return 'gray'
-    default: return 'lightgray'
-  }
+function openEditDialog(channel: Channel) {
+  channelBeingEdited.value = channel
+  editChannelName.value = channel.channelName
+  editIsPublic.value = channel.isPublic
+  showEditDialog.value = true
 }
 
 function joinChannel(channel: Channel) {
   if (!user.value) return
-  userChannelsStore.addUserToChannel(user.value.id, channel.id)
+
+  if (isBannedFromChannel(channel.id)) {
+    $q.notify({ type: 'negative', message: 'You are banned from this channel.' })
+    return
+  }
+
+  if (isInvited(channel.id)) {
+    void confirmJoin(channel)
+    return
+  }
+
+  if (!channel.isPublic) {
+    $q.notify({ type: 'warning', message: 'This is a private channel. Invitation required.' })
+    return
+  }
+
+  userChannelsStore.joinChannel(channel.id)
+}
+
+function confirmJoin(channel: Channel) {
+  userChannelsStore.acceptInvite(channel.id)
+  $q.notify({ type: 'positive', message: `Joining #${channel.channelName}` })
+}
+
+function declineChannel(channel: Channel) {
+  userChannelsStore.declineInvite(channel.id)
 }
 
 function leaveChannel(channel: Channel) {
-  if (!user.value) return
-  userChannelsStore.removeUserFromChannel(user.value.id, channel.id)
+  userChannelsStore.leaveChannel(channel.id)
 }
-
 
 function handleScrollLoad(_index: number, done: () => void) {
   done()
 }
 
-const highlightedChannels = ref<string[]>([])
+function truncate(str: string, max: number = 15): string {
+  return str.length > max ? str.slice(0, max) + "..." : str;
+}
 
 onMounted(() => {
-  if (channelsStore.channels.length === 0) {
-    channelsStore.setChannels([
-      { id: '1', name: '🌐 general', is_public: true, user_id: true },
-      { id: '2', name: '💬 chit-chat', is_public: true, user_id: false },
-      { id: '3', name: '🆘 help-desk', is_public: true, user_id: false },
-      { id: '4', name: '📢 announcements', is_public: true, user_id: false },
-      { id: '5', name: '🎮 gaming', is_public: true, user_id: false },
-      { id: '6', name: '💻 dev-talk', is_public: true, user_id: false },
-      { id: '7', name: '🎨 art-share', is_public: false, user_id: false },
-      { id: '8', name: '🔒 private-chat', is_public: false, user_id: false },
-      { id: '9', name: '📖 book-club', is_public: false, user_id: false }
-    ])
+  if (!userStore.currentUser && auth.user) {
+    userStore.setCurrentUser(auth.user)
   }
-
-  if (user.value) {
-    userChannelsStore.addUserToChannel(user.value.id, '1')
-    userChannelsStore.addUserToChannel(user.value.id, '2')
-    userChannelsStore.addUserToChannel(user.value.id, '3')
-  }
-
-  const all = channelsStore.channels.map(c => c.id)
-  const count = Math.min(5, all.length)
-  highlightedChannels.value = all
-    .sort(() => 0.5 - Math.random())
-    .slice(0, count)
 })
+
+const hasUnread = (channelId: string) => {
+  if (!user.value ) return false;
+
+  const entry = userChannelsStore.userChannels.find(
+    (uc) => uc.channelId === channelId && uc.userId === user.value?.id
+  );
+
+  return entry?.hasUnread === true;
+};
 </script>
+
 
 <style scoped>
 .channel-menu-root {
@@ -391,6 +453,20 @@ body.body--light .channel-highlight {
   color: var(--q-primary);
   text-shadow: 0 0 6px var(--q-primary);
   --highlight-color: var(--q-primary);
+}
+
+.channel-invited {
+  border-left: 3px solid var(--highlight-color);
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+body.body--light .channel-invited {
+  --highlight-color: var(--q-primary);
+}
+
+body.body--dark .channel-invited {
+  --highlight-color: var(--q-secondary);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .status-avatar {

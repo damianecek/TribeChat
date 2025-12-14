@@ -14,35 +14,15 @@
       </q-banner>
 
       <q-form @submit.prevent="onSubmit" class="q-gutter-md">
-        <q-input
-          v-model="uid"
-          label="email/nickname"
-          outlined
-          dense
-          :disable="loading"
-          :rules="[val => !!val || 'necesarry field!']"
-        />
+        <q-input v-model="credentials.uid" label="email/nickname" outlined dense :disable="loading"
+          :rules="[val => !!val || 'necesarry field!']" />
 
-        <q-input
-          v-model="password"
-          label="passwrd"
-          type="password"
-          outlined
-          dense
-          :disable="loading"
-          :rules="[val => !!val || 'necesarry field!']"
-        />
+        <q-input v-model="credentials.password" label="passwrd" type="password" outlined dense :disable="loading"
+          :rules="[val => !!val || 'necesarry field!']" />
 
         <div class="row justify-center">
-          <q-btn
-            label="log in"
-            type="submit"
-            color="primary"
-            unelevated
-            size="m"
-            class="q-mt-sm full-width"
-            :loading="loading"
-          />
+          <q-btn label="log in" type="submit" color="primary" unelevated size="m" class="q-mt-sm full-width"
+            :loading="loading" />
         </div>
       </q-form>
 
@@ -58,30 +38,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { api } from 'boot/axios'
+import { useAuthStore } from 'src/stores/auth'
 
-interface LoginResponse {
-  user: {
-    id: number
-    firstName: string
-    lastName: string
-    nickname: string
-    email: string
-  }
-  token: {
-    type: string
-    token: string
-    expiresAt: string
-  }
-}
+import type { LoginCredentials } from 'src/types/auth'
 
-const uid = ref('')
-const password = ref('')
+
+const credentials = ref({
+  uid: '',
+  password: '',
+} as LoginCredentials)
+
+
 const router = useRouter()
-const loading = ref(false)
+const loading = computed(() => auth.initialized && !auth.user && !!auth.token)
 const errorMessage = ref('')
+const auth = useAuthStore()
 
 const clearError = () => {
   errorMessage.value = ''
@@ -89,30 +62,19 @@ const clearError = () => {
 
 async function onSubmit() {
   try {
-    loading.value = true
     errorMessage.value = ''
 
-    const res = await api.post<LoginResponse>('/login', {
-      uid: uid.value,
-      password: password.value,
-    })
+    await auth.login(credentials.value)
 
-    const { token } = res.data
-
-    // uložiť token
-    localStorage.setItem('token', token.token)
-    api.defaults.headers.common['Authorization'] = `Bearer ${token.token}`
-
-    // redirect
     await router.push('/main')
   } catch (err) {
-    console.error(err)
+    console.error('Login error:', err)
     errorMessage.value = 'Prihlásenie zlyhalo. Skontroluj údaje a skús znova.'
-  } finally {
-    loading.value = false
   }
 }
 </script>
+
+
 
 <style scoped>
 .auth-card {

@@ -16,3 +16,17 @@ export interface AuthResponse {
 export interface MeResponse {
   user: User
 }
+
+
+export interface LoginCredentials {
+  uid: string
+  password: string
+}
+
+export interface RegisterData {
+  firstName: string
+  lastName: string
+  nickname: string
+  email: string
+  password: string
+}
