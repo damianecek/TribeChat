@@ -67,12 +67,27 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
-   * Update user status via socket
+   * Update user status via socket or HTTP API (fallback)
    */
-  function updateStatus(newStatus: UserStatus): void {
+  async function updateStatus(newStatus: UserStatus): Promise<void> {
     if (!currentUser.value) return
+    
+    // Update local state optimistically for immediate UI feedback
+    setCurrentUserStatus(newStatus)
+    
     const socket = socketService.getSocket()
-    socket?.emit('user:setStatus', { status: newStatus })
+    
+    // If socket is connected, use it for real-time update
+    if (socket?.connected) {
+      socket.emit('user:setStatus', { status: newStatus })
+    } else {
+      // Fallback to HTTP API when socket is not connected (e.g., when status is Offline)
+      try {
+        await api.patch('/users/status', { status: newStatus })
+      } catch (err) {
+        console.error('Failed to update status via API:', err)
+      }
+    }
   }
 
   /**
