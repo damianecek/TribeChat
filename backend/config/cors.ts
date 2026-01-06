@@ -14,7 +14,7 @@ const corsConfig = defineConfig({
     if (!env.get('NODE_ENV') || env.get('NODE_ENV') === 'development') {
       return true
     }
-    
+
     // In production, check against allowed origins
     const allowedOrigins = env.get('CORS_ORIGINS', 'http://localhost').split(',')
     return allowedOrigins.includes(origin) || origin === undefined

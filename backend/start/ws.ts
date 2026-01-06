@@ -436,12 +436,14 @@ app.ready(() => {
           await message.load('author')
           await Channel.query().where('id', channelId).update({ lastMessage: DateTime.local() })
 
-          const room = io.sockets.adapter.rooms.get(`channel:${channelId}`)
+          if (io) {
+            const room = io.sockets.adapter.rooms.get(`channel:${channelId}`)
 
-          console.log('📡 Broadcast recipients for message:', {
-            channel: `channel:${channelId}`,
-            receivers: room ? [...room] : [], // convert Set to array of socket IDs
-          })
+            console.log('📡 Broadcast recipients for message:', {
+              channel: `channel:${channelId}`,
+              receivers: room ? [...room] : [], // convert Set to array of socket IDs
+            })
+          }
 
           // ✅ iba broadcast do roomu (bez duplicity pre odosielateľa)
           io?.to(`channel:${channelId}`).emit('message:new', {
@@ -491,8 +493,11 @@ app.ready(() => {
           if (beforeId) {
             // fetch messages older than a given message ID
             const beforeMessage = await Message.find(beforeId)
-            if (beforeMessage) {
-              query = query.where('created_at', '<', beforeMessage.createdAt)
+            if (beforeMessage && beforeMessage.createdAt) {
+              const sqlDate = beforeMessage.createdAt.toSQL()
+              if (sqlDate) {
+                query = query.where('created_at', '<', sqlDate)
+              }
             }
           }
 

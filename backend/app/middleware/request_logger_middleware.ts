@@ -8,7 +8,8 @@ import logger from '@adonisjs/core/services/logger'
 export default class RequestLoggerMiddleware {
   async handle(ctx: HttpContext, next: NextFn) {
     const startTime = Date.now()
-    const { method, url, headers } = ctx.request
+    const { method, url } = ctx.request
+    const headers = ctx.request.headers()
 
     // Log incoming request
     logger.info({
@@ -16,7 +17,7 @@ export default class RequestLoggerMiddleware {
       method,
       url,
       ip: ctx.request.ip(),
-      userAgent: headers['user-agent'],
+      userAgent: headers['user-agent'] || 'unknown',
       requestId: ctx.request.id(),
     })
 
@@ -25,7 +26,7 @@ export default class RequestLoggerMiddleware {
 
     // Log response
     const duration = Date.now() - startTime
-    const { statusCode } = ctx.response
+    const statusCode = ctx.response.getStatus()
 
     logger.info({
       msg: 'Request completed',

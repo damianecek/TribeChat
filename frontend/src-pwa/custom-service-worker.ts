@@ -4,8 +4,10 @@
  * quasar.config.js > pwa > workboxMode is set to "injectManifest"
  */
 
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 declare const self: ServiceWorkerGlobalScope &
   typeof globalThis & { skipWaiting: () => void }
+/* eslint-enable @typescript-eslint/no-redundant-type-constituents */
 
 import { clientsClaim } from 'workbox-core'
 import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching'

@@ -15,12 +15,11 @@ interface EnvironmentConfig {
  */
 export function getEnvironmentConfig(): EnvironmentConfig {
   const isDevelopment = process.env.NODE_ENV === 'development'
-  const isProduction = process.env.NODE_ENV === 'production'
 
   return {
     apiBaseUrl: process.env.API_BASE_URL || (isDevelopment ? 'http://localhost:3333' : '/api'),
     wsUrl: process.env.WS_URL || (isDevelopment ? 'http://localhost:3333' : window.location.origin),
-    environment: (process.env.NODE_ENV as any) || 'development',
+    environment: (process.env.NODE_ENV || 'development') as 'development' | 'production' | 'staging',
     enableDebugMode: isDevelopment,
   }
 }
