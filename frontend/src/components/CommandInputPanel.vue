@@ -1,217 +1,44 @@
 <template>
-  <div class="row items-center q-px-md q-mt-auto">
-    <div class="col">
-      <q-input
-        v-model="text"
-        autogrow
-        placeholder="Type a message or command..."
-        filled
-        dense
-        @update:model-value="onTyping"
-        @keydown.enter.prevent="handleEnter"
-      >
-        <template #append>
-          <q-btn @click="sendMessage" round dense flat icon="send" />
-        </template>
-      </q-input>
-    </div>
-  </div>
+  <MessageInput
+    v-model="text"
+    @typing="onTyping"
+    @send="sendMessage"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed } from 'vue'
+import { ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useTabsStore } from 'src/stores/tabs'
-import { useChannelActions } from 'src/composable/useChannelActions'
 import { useMessagesStore } from 'src/stores/messages'
 import { useAuthStore } from 'src/stores/auth'
-import { socketService } from 'src/services/SocketService'
 import { v4 as uuid } from 'uuid'
+import { useCommands } from 'src/composable/useCommands'
+import { useTypingIndicator } from 'src/composable/useTypingIndicator'
+import MessageInput from 'components/chat/MessageInput.vue'
 
 const $q = useQuasar()
-const text = ref('')
 const tabStore = useTabsStore()
 const messagesStore = useMessagesStore()
 const auth = useAuthStore()
-const socket = computed(() => socketService.getSocket())
 
-const {
-  addOrGetChannel,
-  cancelActiveChannel,
-  quitActiveChannel,
-  inviteUserToChannel,
-  kickUserFromChannel,
-  listChannelMembers,
-  revokeUserFromChannel,
-} = useChannelActions()
+const { executeCommand } = useCommands()
+const typingIndicator = useTypingIndicator(() => tabStore.activeTab?.id || '')
 
-let isTyping = false
-let typingTimeout: ReturnType<typeof setTimeout>
-let lastDraftEmit = 0
+// Local text ref for v-model
+const text = ref('')
 
-function onTyping() {
-  const channelId = tabStore.activeTab?.id
-  if (!channelId) return
-
-  const now = Date.now()
-
-  // Emit typing:start only once
-  if (!isTyping) {
-    isTyping = true
-    socket.value?.emit('typing:start', { channelId, draft: text.value })
-  }
-
-  // Throttle draft updates to every 200ms
-  if (now - lastDraftEmit > 200) {
-    socket.value?.emit('typing:draft', { channelId, draft: text.value })
-    lastDraftEmit = now
-  }
-
-  // Reset stop timer
-  clearTimeout(typingTimeout)
-  typingTimeout = setTimeout(() => {
-    isTyping = false
-    socket.value?.emit('typing:stop', { channelId })
-  }, 1200)
+// Sync text with typing indicator and trigger typing events
+const onTyping = () => {
+  typingIndicator.text.value = text.value
+  typingIndicator.onTyping()
 }
 
-
-function getErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message
-  if (typeof err === 'string') return err
-  try {
-    return JSON.stringify(err) || String(err)
-  } catch {
-    return String(err)
-  }
-}
-
-// === COMMAND HANDLING ===
-const executeCommand = (input: string): boolean => {
-  const trimmed = input.trim()
-  if (!trimmed.startsWith('/')) return false
-
-  const parts = trimmed.slice(1).split(/\s+/)
-  const cmd = parts[0]?.toLowerCase() ?? ''
-  const args = parts.slice(1)
-
-  switch (cmd) {
-    case 'join': {
-      const isPrivate = args.includes('--private')
-      const filteredArgs = args.filter((a) => a !== '--private')
-      const channelName = filteredArgs.join(' ') || 'general'
-      try {
-        addOrGetChannel(channelName, !isPrivate)
-      } catch (err) {
-        const msg = getErrorMessage(err)
-        $q.notify({ type: 'negative', message: `Join failed: ${msg}` })
-      }
-      return true
-    }
-
-    case 'cancel': {
-      try {
-        const result = cancelActiveChannel()
-        if (!result) {
-          $q.notify({ type: 'warning', message: 'No active channel to leave' })
-        } else {
-          $q.notify({ type: 'positive', message: `Left #${result.channelName}` })
-        }
-      } catch (err) {
-        $q.notify({ type: 'negative', message: getErrorMessage(err) })
-      }
-      return true
-    }
-
-    case 'quit': {
-      try {
-        const result = quitActiveChannel()
-        if (!result) {
-          $q.notify({ type: 'warning', message: 'No active channel to quit' })
-        } else {
-          $q.notify({ type: 'positive', message: `Quit #${result.channelName}` })
-        }
-      } catch (err) {
-        $q.notify({ type: 'negative', message: getErrorMessage(err) })
-      }
-      return true
-    }
-
-    case 'invite': {
-      const userId = args[0]
-      if (!userId) {
-        $q.notify({ type: 'warning', message: 'Usage: /invite <userId>' })
-        return true
-      }
-      try {
-        inviteUserToChannel(userId)
-        $q.notify({ type: 'positive', message: `Invited ${userId}` })
-      } catch (err) {
-        $q.notify({ type: 'negative', message: getErrorMessage(err) })
-      }
-      return true
-    }
-
-    case 'kick': {
-      const userId = args[0]
-      if (!userId) {
-        $q.notify({ type: 'warning', message: 'Usage: /kick <userId>' })
-        return true
-      }
-      try {
-        const action = kickUserFromChannel(userId)
-        if (action === 'kicked') {
-          $q.notify({ type: 'positive', message: `Kicked ${userId}` })
-        } else {
-          $q.notify({ type: 'warning', message: `Voted to ban ${userId}` })
-        }
-      } catch (err) {
-        $q.notify({ type: 'negative', message: getErrorMessage(err) })
-      }
-      return true
-    }
-
-    case 'revoke': {
-      const userId = args[0]
-      if (!userId) {
-        $q.notify({ type: 'warning', message: 'Usage: /revoke <userId>' })
-        return true
-      }
-      try {
-        revokeUserFromChannel(userId)
-        $q.notify({ type: 'positive', message: `Revoked ${userId}` })
-      } catch (err) {
-        $q.notify({ type: 'negative', message: getErrorMessage(err) })
-      }
-      return true
-    }
-
-    case 'list': {
-      try {
-        const members = listChannelMembers()
-        if (!members.length) {
-          $q.notify({ type: 'info', message: 'No members found' })
-        } else {
-          $q.notify({ type: 'info', message: `Members: ${members.join(', ')}` })
-        }
-      } catch (err) {
-        $q.notify({ type: 'negative', message: getErrorMessage(err) })
-      }
-      return true
-    }
-
-    default:
-      $q.notify({ type: 'warning', message: `Unknown command: /${cmd}` })
-      return true
-  }
-}
-
-// === SEND MESSAGE ===
 const sendMessage = () => {
   const content = text.value.trim()
   if (!content) return
 
-  // handle slash commands
+  // Handle slash commands
   if (content.startsWith('/')) {
     const handled = executeCommand(content)
     if (handled) {
@@ -226,7 +53,7 @@ const sendMessage = () => {
     return
   }
 
-  // create optimistic message maybe useless but should feel snappy lol --Damianko last words before disaster 2025
+  // Create optimistic message
   const msg = {
     id: uuid(),
     chatId: channelId,
@@ -236,27 +63,12 @@ const sendMessage = () => {
     sent: true,
   }
 
-  // add locally
+  // Add locally
   messagesStore.addMessage(msg)
 
-  // send via store (which uses socket internally)
+  // Send via store (which uses socket internally)
   messagesStore.sendMessage(channelId, content)
 
   text.value = ''
-}
-
-// === Handle Enter (Shift+Enter = newline) ===
-const handleEnter = (e: KeyboardEvent) => {
-  if (e.shiftKey) {
-    const target = e.target as HTMLTextAreaElement
-    const start = target.selectionStart
-    const end = target.selectionEnd
-    text.value = text.value.substring(0, start) + '\n' + text.value.substring(end)
-    void nextTick(() => {
-      target.selectionStart = target.selectionEnd = start + 1
-    })
-  } else {
-    void sendMessage()
-  }
 }
 </script>

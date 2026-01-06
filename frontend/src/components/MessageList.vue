@@ -21,168 +21,94 @@
           :class="{ mention: isMention(msg.content) }"
         />
 
-        <!-- === TYPING LIST === -->
-        <div v-if="Object.keys(typingUsers).length" class="q-pa-sm text-grey">
-          <div
-            v-for="(info, id) in typingUsers"
-            :key="id"
-            class="q-mb-xs cursor-pointer"
-            @click="toggleDraft(id)"
-          >
-            <div v-if="!info.expanded" class="text-caption typing-indicator">
-              {{ info.username }} is typing... (click to preview)
-            </div>
-            <div v-else class="rounded-borders">
-              <div class="text-bold">{{ info.username }}’s draft:</div>
-              <pre class="draft-window">{{ info.draft || '(empty)' }}</pre>
-              <div class="text-primary text-caption">(click to hide)</div>
-            </div>
-          </div>
-        </div>
+        <!-- === TYPING INDICATOR === -->
+        <TypingIndicator :channel-id="activeChannelId" />
       </div>
     </q-infinite-scroll>
   </q-scroll-area>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted, reactive, nextTick } from 'vue';
+import { computed, ref, watch, onMounted, nextTick } from 'vue'
 
 import { useMessagesStore } from 'src/stores/messages'
 import { useTabsStore } from 'src/stores/tabs'
 import { useAuthStore } from 'src/stores/auth'
-import { socketService } from 'src/services/SocketService'
+import TypingIndicator from 'components/chat/TypingIndicator.vue'
 
 const messagesStore = useMessagesStore()
 const tabsStore = useTabsStore()
 const authStore = useAuthStore()
-const socket = computed(() => socketService.getSocket())
 
-const scrollAreaRef = ref();
-const contentRef = ref();
+const scrollAreaRef = ref()
+const contentRef = ref()
 
 // CURRENT USER
-const username = computed(() => authStore.user?.nickname || 'User');
+const username = computed(() => authStore.user?.nickname || 'User')
 
 // ACTIVE CHANNEL
-const activeChannelId = computed(() => tabsStore.activeTab?.id || '');
+const activeChannelId = computed(() => tabsStore.activeTab?.id || '')
 
 // MESSAGES
-const messages = computed(() => messagesStore.getMessages(activeChannelId.value));
-
-// === TYPING USERS (reactive dict) ===
-const typingUsers = reactive<{
-  [id: string]: { username: string; draft: string; expanded: boolean };
-}>({});
-
+const messages = computed(() => messagesStore.getMessages(activeChannelId.value))
 
 // ======== LIFECYCLE ========
 onMounted(() => {
   if (activeChannelId.value && messages.value.length === 0) {
-      messagesStore.fetchMessages(activeChannelId.value);
+      messagesStore.fetchMessages(activeChannelId.value)
   }
-  setupTypingListeners();
-});
-
-onUnmounted(removeTypingListeners);
+})
 
 // ======== WATCH CHANNEL SWITCH ========
 watch(
   () => activeChannelId.value,
   (newId) => {
-    if (!newId) return;
-    messagesStore.fetchMessages(newId);
-    removeTypingListeners();
-    setupTypingListeners();
-    Object.keys(typingUsers).forEach((k) => delete typingUsers[k]);
+    if (!newId) return
+    messagesStore.fetchMessages(newId)
   },
-);
+)
 
-// ======== SOCKET TYPING EVENTS ========
-// Triggered by q-infinite-scroll when scroll reaches top
+// ======== INFINITE SCROLL ========
 function onLoadMore(index: number, done: (stop?: boolean) => void) {
-  const scrollEl = scrollAreaRef.value?.$el?.querySelector('.scroll');
-  if (!scrollEl) return done(); // no more messages
+  const scrollEl = scrollAreaRef.value?.$el?.querySelector('.scroll')
+  if (!scrollEl) return done()
 
-  const SCROLL_OFFSET = 50; // ← how far down to reposition after load
-
-  // store current height before new messages arrive
+  const SCROLL_OFFSET = 50
 
   if (messages.value.length > 20) {
-    messagesStore.fetchMessages(activeChannelId.value);
+    messagesStore.fetchMessages(activeChannelId.value)
   }
 
-  // wait for DOM update → then adjust scroll position
   setTimeout(() => {
-
-    scrollEl.scrollTop += SCROLL_OFFSET;
-
-    done(); // finish infinite-scroll
-  }, 300); // shorter delay recommended (700ms too slow UX)
-}
-
-function setupTypingListeners() {
-  const cid = activeChannelId.value
-  if (!cid) return
-
-  socket.value?.on(`typing:start:${cid}`, (data: { userId: number; username: string; draft?: string }) => {
-    typingUsers[data.userId] = {
-      username: data.username,
-      draft: data.draft || '',
-      expanded: false,
-    }
-  })
-
-  socket.value?.on(`typing:draft:${cid}`, (data: { userId: number; draft: string }) => {
-    const user = typingUsers[data.userId]
-    if (user) {
-      user.draft = data.draft
-    }
-  })
-
-  socket.value?.on(`typing:stop:${cid}`, (data: { userId: number }) => {
-    delete typingUsers[data.userId]
-  })
-}
-
-function removeTypingListeners() {
-  const cid = activeChannelId.value
-  if (!cid) return
-  socket.value?.off(`typing:start:${cid}`)
-  socket.value?.off(`typing:draft:${cid}`)
-  socket.value?.off(`typing:stop:${cid}`)
-}
-
-// ======== TOGGLE DRAFT VIEW ========
-function toggleDraft(id: string | number) {
-  if (!typingUsers[id]) return;
-  typingUsers[id].expanded = !typingUsers[id].expanded;
+    scrollEl.scrollTop += SCROLL_OFFSET
+    done()
+  }, 300)
 }
 
 // ======== MESSAGE COLORS ========
 function messageColor(sent: boolean) {
-  return sent ? 'grey-3' : 'amber-3';
+  return sent ? 'grey-3' : 'amber-3'
 }
 
 // ======== AUTO-SCROLL (only if near bottom) ========
 watch(messages, async () => {
-  await nextTick();
-  const scrollEl = scrollAreaRef.value?.$el?.querySelector('.scroll');
-  if (!scrollEl) return;
+  await nextTick()
+  const scrollEl = scrollAreaRef.value?.$el?.querySelector('.scroll')
+  if (!scrollEl) return
 
-  const threshold = 700; // pixels from bottom to consider "near bottom"
-  const distanceFromBottom = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight;
+  const threshold = 700
+  const distanceFromBottom = scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight
 
   if (distanceFromBottom <= threshold) {
-    scrollEl.scrollTop = scrollEl.scrollHeight;
+    scrollEl.scrollTop = scrollEl.scrollHeight
   }
-});
-
+})
 
 // ======== MENTION DETECTION ========
 function isMention(text: string) {
-  const uname = username.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`@${uname}(?![a-zA-Z0-9_])`);
-  return regex.test(text);
+  const uname = username.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`@${uname}(?![a-zA-Z0-9_])`)
+  return regex.test(text)
 }
 </script>
 
@@ -196,21 +122,5 @@ function isMention(text: string) {
   background: rgba(233, 30, 99, 0.15);
   font-weight: bold;
   border-radius: 4px;
-}
-
-.typing-indicator {
-  cursor: pointer;
-  opacity: 0.8;
-}
-
-.typing-indicator:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
-
-.draft-window {
-  white-space: pre-wrap;
-  margin: 0;
-  font-family: monospace;
 }
 </style>
