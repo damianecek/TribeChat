@@ -47,14 +47,15 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted, reactive, nextTick } from 'vue';
 
-import { useMessagesStore } from 'src/stores/messages';
-import { useTabsStore } from 'src/stores/tabs';
-import { useAuthStore } from 'src/stores/auth';
-import { socket } from 'boot/socket';
+import { useMessagesStore } from 'src/stores/messages'
+import { useTabsStore } from 'src/stores/tabs'
+import { useAuthStore } from 'src/stores/auth'
+import { socketService } from 'src/services/SocketService'
 
-const messagesStore = useMessagesStore();
-const tabsStore = useTabsStore();
-const authStore = useAuthStore();
+const messagesStore = useMessagesStore()
+const tabsStore = useTabsStore()
+const authStore = useAuthStore()
+const socket = computed(() => socketService.getSocket())
 
 const scrollAreaRef = ref();
 const contentRef = ref();
@@ -120,35 +121,35 @@ function onLoadMore(index: number, done: (stop?: boolean) => void) {
 }
 
 function setupTypingListeners() {
-  const cid = activeChannelId.value;
-  if (!cid) return;
+  const cid = activeChannelId.value
+  if (!cid) return
 
-  socket?.on(`typing:start:${cid}`, (data) => {
+  socket.value?.on(`typing:start:${cid}`, (data: { userId: number; username: string; draft?: string }) => {
     typingUsers[data.userId] = {
       username: data.username,
       draft: data.draft || '',
       expanded: false,
-    };
-  });
-
-  socket?.on(`typing:draft:${cid}`, (data) => {
-    const user = typingUsers[data.userId];
-    if (user) {
-      user.draft = data.draft;
     }
-  });
+  })
 
-  socket?.on(`typing:stop:${cid}`, (data) => {
-    delete typingUsers[data.userId];
-  });
+  socket.value?.on(`typing:draft:${cid}`, (data: { userId: number; draft: string }) => {
+    const user = typingUsers[data.userId]
+    if (user) {
+      user.draft = data.draft
+    }
+  })
+
+  socket.value?.on(`typing:stop:${cid}`, (data: { userId: number }) => {
+    delete typingUsers[data.userId]
+  })
 }
 
 function removeTypingListeners() {
-  const cid = activeChannelId.value;
-  if (!cid) return;
-  socket?.off(`typing:start:${cid}`);
-  socket?.off(`typing:draft:${cid}`);
-  socket?.off(`typing:stop:${cid}`);
+  const cid = activeChannelId.value
+  if (!cid) return
+  socket.value?.off(`typing:start:${cid}`)
+  socket.value?.off(`typing:draft:${cid}`)
+  socket.value?.off(`typing:stop:${cid}`)
 }
 
 // ======== TOGGLE DRAFT VIEW ========

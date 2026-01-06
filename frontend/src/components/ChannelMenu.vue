@@ -196,7 +196,6 @@ import { useChannelsStore } from 'stores/channels'
 import { useTabsStore } from 'stores/tabs'
 import { useUserChannelsStore } from 'stores/user_channels'
 import type { UserStatus } from 'src/types/user'
-import { socket } from 'boot/socket'
 import { useUserStore } from 'stores/user'
 
 const router = useRouter()
@@ -265,8 +264,6 @@ const statusOptions: UserStatus[] = ['Online', 'Away', 'Offline', 'DND']
 
 function setStatus(newStatus: UserStatus) {
   if (!user.value) return
-  userStore.updateUserStatus(user.value.id, newStatus)
-  socket?.emit('user:setStatus', { status: newStatus })
   void userStore.updateStatus(newStatus)
 }
 

@@ -1,62 +1,95 @@
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import type { User, UserStatus } from 'src/types/user';
-import { socket } from 'boot/socket';
-import { api } from 'boot/axios';
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import type { User, UserStatus } from 'src/types/user'
+import { socketService } from 'src/services/SocketService'
+import { api } from 'boot/axios'
 
 export const useUserStore = defineStore('user', () => {
-  const currentUser = ref<User | null>(null);
-  const users = ref<User[]>([]);
+  const currentUser = ref<User | null>(null)
+  const users = ref<User[]>([])
 
-  function setCurrentUser(user: User) {
-    currentUser.value = user;
+  /**
+   * Set the current user
+   */
+  function setCurrentUser(user: User): void {
+    currentUser.value = user
   }
 
-  function clearCurrentUser() {
-    currentUser.value = null;
+  /**
+   * Clear the current user
+   */
+  function clearCurrentUser(): void {
+    currentUser.value = null
   }
 
-  function setUsers(list: User[]) {
-    users.value = list;
+  /**
+   * Set all users
+   */
+  function setUsers(list: User[]): void {
+    users.value = list
   }
 
-  function addUser(user: User) {
+  /**
+   * Add a user
+   */
+  function addUser(user: User): void {
     if (!users.value.some((u) => u.id === user.id)) {
-      users.value.push(user);
+      users.value.push(user)
     }
   }
 
-  function updateUserStatus(userId: number, newStatus: UserStatus) {
-    const u = users.value.find((u) => u.id === userId);
-    if (u) u.status = newStatus;
-    if (currentUser.value?.id === userId) currentUser.value.status = newStatus;
+  /**
+   * Update user status
+   */
+  function updateUserStatus(userId: number, newStatus: UserStatus): void {
+    const u = users.value.find((u) => u.id === userId)
+    if (u) u.status = newStatus
+    if (currentUser.value?.id === userId) currentUser.value.status = newStatus
   }
 
-  function setCurrentUserStatus(newStatus: UserStatus) {
-    if (currentUser.value) currentUser.value.status = newStatus;
+  /**
+   * Set current user status
+   */
+  function setCurrentUserStatus(newStatus: UserStatus): void {
+    if (currentUser.value) currentUser.value.status = newStatus
   }
 
-  async function fetchUsers() {
+  /**
+   * Fetch all users from API
+   */
+  async function fetchUsers(): Promise<void> {
     try {
-      const res = await api.get<User[]>('/users');
-      setUsers(res.data);
+      const res = await api.get<User[]>('/users')
+      setUsers(res.data)
     } catch (err) {
-      console.error('Failed to fetch users:', err);
+      console.error('Failed to fetch users:', err)
     }
   }
 
-  // === WebSocket-based status update ===
-  function updateStatus(newStatus: UserStatus) {
-    if (!currentUser.value) return;
-    socket?.emit('user:setStatus', { status: newStatus });
+  /**
+   * Update user status via socket
+   */
+  function updateStatus(newStatus: UserStatus): void {
+    if (!currentUser.value) return
+    const socket = socketService.getSocket()
+    socket?.emit('user:setStatus', { status: newStatus })
   }
 
+  /**
+   * Find user by nickname
+   */
   const findUserByName = (nickname: string) =>
-    users.value.find((u) => u.nickname === nickname) || null;
+    users.value.find((u) => u.nickname === nickname) || null
 
-  const findUserById = (id: number) => users.value.find((u) => u.id === id) || null;
+  /**
+   * Find user by ID
+   */
+  const findUserById = (id: number) => users.value.find((u) => u.id === id) || null
 
-  const getCurrentUser = computed(() => currentUser.value);
+  /**
+   * Get current user (computed)
+   */
+  const getCurrentUser = computed(() => currentUser.value)
 
   return {
     currentUser,
@@ -72,7 +105,7 @@ export const useUserStore = defineStore('user', () => {
     findUserByName,
     findUserById,
     getCurrentUser,
-  };
-});
+  }
+})
 
-export type UserStore = ReturnType<typeof useUserStore>;
+export type UserStore = ReturnType<typeof useUserStore>
