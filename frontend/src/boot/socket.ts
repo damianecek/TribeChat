@@ -35,7 +35,8 @@ export default boot(() => {
     () => userStore.currentUser?.status,
     (newStatus, oldStatus) => {
       // Reconnect when changing from Offline to any other status
-      if (oldStatus === 'Offline' && newStatus !== 'Offline' && auth.token && !socketService.isConnected()) {
+      const shouldReconnect = oldStatus === 'Offline' && newStatus !== 'Offline' && auth.token && !socketService.isConnected()
+      if (shouldReconnect && auth.token) {
         socketService.connect(auth.token)
       }
       

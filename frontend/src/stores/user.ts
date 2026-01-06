@@ -72,6 +72,9 @@ export const useUserStore = defineStore('user', () => {
   async function updateStatus(newStatus: UserStatus): Promise<void> {
     if (!currentUser.value) return
     
+    // Update local state optimistically for immediate UI feedback
+    setCurrentUserStatus(newStatus)
+    
     const socket = socketService.getSocket()
     
     // If socket is connected, use it for real-time update
@@ -81,8 +84,6 @@ export const useUserStore = defineStore('user', () => {
       // Fallback to HTTP API when socket is not connected (e.g., when status is Offline)
       try {
         await api.patch('/users/status', { status: newStatus })
-        // Update local state optimistically
-        setCurrentUserStatus(newStatus)
       } catch (err) {
         console.error('Failed to update status via API:', err)
       }

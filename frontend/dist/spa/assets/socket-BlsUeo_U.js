@@ -1,1 +1,0 @@
-import{b as c,u as i,a as u,s as e}from"./index-CgXo7HN7.js";const r=c(()=>{const s=i(),o=u();s.$subscribe((a,t)=>{const n=s.user?.status==="Offline";t.token&&!e.isConnected()&&!n&&e.connect(t.token),(!t.token||n)&&e.isConnected()&&(o.cleanup(),e.disconnect())}),s.token&&!e.isConnected()&&s.user?.status!=="Offline"&&e.connect(s.token)});export{r as default,e as socketService};

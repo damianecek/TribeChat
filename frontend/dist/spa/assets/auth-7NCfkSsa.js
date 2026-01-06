@@ -1,1 +1,0 @@
-import{b as s,u}from"./index-CgXo7HN7.js";const h=s(async({router:t})=>{const a=u();await a.init(),t.beforeEach(async e=>{const i=await a.isAuthenticated();if(e.meta.requiresAuth&&!i)return await t.push("/login");if(!e.meta.requiresAuth&&i)return await t.push("/main")})});export{h as default};
