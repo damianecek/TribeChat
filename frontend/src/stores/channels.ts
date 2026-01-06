@@ -1,22 +1,30 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Channel } from 'src/types'
-import { socket } from 'boot/socket'
+import { socketService } from 'src/services/SocketService'
 
 export const useChannelsStore = defineStore('channels', () => {
   const channels = ref<Channel[]>([])
 
-  // === Lokálne úpravy ===
-  function setChannels(newChannels: Channel[]) {
+  /**
+   * Set all channels
+   */
+  function setChannels(newChannels: Channel[]): void {
     channels.value = newChannels
   }
 
-  function addChannel(channel: Channel) {
+  /**
+   * Add a channel to the store
+   */
+  function addChannel(channel: Channel): void {
     const exists = channels.value.some((c) => c.id === channel.id)
     if (!exists) channels.value.unshift(channel)
   }
 
-  function updateChannelLocal(id: string, newName: string, isPublic: boolean) {
+  /**
+   * Update a channel locally
+   */
+  function updateChannelLocal(id: string, newName: string, isPublic: boolean): void {
     const channel = channels.value.find((item) => item.id === id)
     if (channel) {
       channel.channelName = newName
@@ -24,39 +32,51 @@ export const useChannelsStore = defineStore('channels', () => {
     }
   }
 
-  function deleteChannelLocal(id: string) {
+  /**
+   * Delete a channel locally
+   */
+  function deleteChannelLocal(id: string): void {
     channels.value = channels.value.filter((c) => c.id !== id)
   }
 
-  // === WebSocket akcie ===
-  function createChannel(name: string, isPrivate: boolean) {
+  /**
+   * Create a channel via socket
+   */
+  function createChannel(name: string, isPrivate: boolean): void {
+    const socket = socketService.getSocket()
     socket?.emit('channel:create', { name, isPublic: !isPrivate })
   }
 
-  function updateChannel(id: string, name: string, isPrivate: boolean) {
+  /**
+   * Update a channel via socket
+   */
+  function updateChannel(id: string, name: string, isPrivate: boolean): void {
+    const socket = socketService.getSocket()
     socket?.emit('channel:update', { id, name, isPublic: !isPrivate })
   }
 
-  function deleteChannel(id: string) {
+  /**
+   * Delete a channel via socket
+   */
+  function deleteChannel(id: string): void {
+    const socket = socketService.getSocket()
     socket?.emit('channel:delete', id)
   }
 
-  function joinChannel(channelId: string) {
+  /**
+   * Join a channel via socket
+   */
+  function joinChannel(channelId: string): void {
+    const socket = socketService.getSocket()
     socket?.emit('member:join', channelId)
   }
 
-  function leaveChannel(channelId: string) {
+  /**
+   * Leave a channel via socket
+   */
+  function leaveChannel(channelId: string): void {
+    const socket = socketService.getSocket()
     socket?.emit('member:leave', channelId)
-  }
-
-  // === WS eventy ===
-  if (socket) {
-    socket.on('response:channels', (chs: Channel[]) => setChannels(chs))
-    socket.on('channel:created', (ch: Channel) => addChannel(ch))
-    socket.on('channel:updated', (ch: Channel) =>
-      updateChannelLocal(ch.id, ch.channelName, ch.isPublic),
-    )
-    socket.on('channel:deleted', (id: string) => deleteChannelLocal(id))
   }
 
   return {

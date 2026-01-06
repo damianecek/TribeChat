@@ -19,13 +19,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, computed } from 'vue'
 import { useQuasar } from 'quasar'
 import { useTabsStore } from 'src/stores/tabs'
 import { useChannelActions } from 'src/composable/useChannelActions'
 import { useMessagesStore } from 'src/stores/messages'
 import { useAuthStore } from 'src/stores/auth'
-import { socket } from 'boot/socket'
+import { socketService } from 'src/services/SocketService'
 import { v4 as uuid } from 'uuid'
 
 const $q = useQuasar()
@@ -33,6 +33,7 @@ const text = ref('')
 const tabStore = useTabsStore()
 const messagesStore = useMessagesStore()
 const auth = useAuthStore()
+const socket = computed(() => socketService.getSocket())
 
 const {
   addOrGetChannel,
@@ -57,12 +58,12 @@ function onTyping() {
   // Emit typing:start only once
   if (!isTyping) {
     isTyping = true
-    socket?.emit("typing:start", { channelId, draft: text.value })
+    socket.value?.emit('typing:start', { channelId, draft: text.value })
   }
 
   // Throttle draft updates to every 200ms
   if (now - lastDraftEmit > 200) {
-    socket?.emit("typing:draft", { channelId, draft: text.value })
+    socket.value?.emit('typing:draft', { channelId, draft: text.value })
     lastDraftEmit = now
   }
 
@@ -70,7 +71,7 @@ function onTyping() {
   clearTimeout(typingTimeout)
   typingTimeout = setTimeout(() => {
     isTyping = false
-    socket?.emit("typing:stop", { channelId })
+    socket.value?.emit('typing:stop', { channelId })
   }, 1200)
 }
 
@@ -238,8 +239,8 @@ const sendMessage = () => {
   // add locally
   messagesStore.addMessage(msg)
 
-  // emit to WS
-  socket?.emit('message:send', { channelId, content })
+  // send via store (which uses socket internally)
+  messagesStore.sendMessage(channelId, content)
 
   text.value = ''
 }
