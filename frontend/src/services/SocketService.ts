@@ -4,6 +4,7 @@ import { useChannelSocket } from 'src/composable/useChannelSocket'
 import { useMemberSocket } from 'src/composable/useMemberSocket'
 import { useMessageSocket } from 'src/composable/useMessageSocket'
 import { useUserSocket } from 'src/composable/useUserSocket'
+import { appConfig } from 'src/config/app.config'
 
 /**
  * Centralized Socket Service for managing WebSocket connections and events
@@ -29,7 +30,7 @@ export class SocketService {
     console.log('🟢 Connecting socket...')
     this.token = token
 
-    this.socket = io('http://localhost:3333', {
+    this.socket = io(appConfig.wsUrl, {
       auth: { token },
     })
 
