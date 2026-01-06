@@ -264,7 +264,6 @@ const statusOptions: UserStatus[] = ['Online', 'Away', 'Offline', 'DND']
 
 function setStatus(newStatus: UserStatus) {
   if (!user.value) return
-  userStore.updateUserStatus(user.value.id, newStatus)
   void userStore.updateStatus(newStatus)
 }
 
