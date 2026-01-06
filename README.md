@@ -134,12 +134,14 @@ docker compose down -v
 
 | Príkaz | Popis |
 |--------|-------|
+| `./validate-setup.sh` | Skontroluje konfiguráciu pred spustením |
+| `./get-network-config.sh` | Zobrazí konfiguráciu pre network access |
+| `./start-dev.sh` | Spustí dev server s network info |
+| `./start-prod.sh` | Spustí production server |
 | `docker compose up` | Spustí development server |
 | `docker compose down` | Zastaví containery |
 | `docker compose down -v` | Zastaví a zmaže databázový volume |
 | `docker compose logs [service]` | Zobrazí logy (napr. `backend`, `frontend`, `db`) |
-| `./start-dev.sh` | Spustí dev server s network info |
-| `./start-prod.sh` | Spustí production server |
 
 ---
 
