@@ -3,8 +3,8 @@
  */
 export const API_CONFIG = {
   BASE_URL: process.env.API_BASE_URL || 'http://localhost:3333',
-  TIMEOUT: 30000,
-  RETRY_ATTEMPTS: 3,
+  TIMEOUT: 30000, // 30 seconds - sufficient for most API calls
+  RETRY_ATTEMPTS: 3, // Retry failed requests up to 3 times
 } as const
 
 /**
@@ -12,8 +12,8 @@ export const API_CONFIG = {
  */
 export const WS_CONFIG = {
   URL: process.env.WS_URL || 'http://localhost:3333',
-  RECONNECTION_ATTEMPTS: 5,
-  RECONNECTION_DELAY: 1000,
+  RECONNECTION_ATTEMPTS: 5, // Try to reconnect 5 times before giving up
+  RECONNECTION_DELAY: 1000, // Wait 1 second between reconnection attempts
 } as const
 
 /**
