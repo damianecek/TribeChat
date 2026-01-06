@@ -10,6 +10,11 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
 
+// Health check endpoint
+router.get('/health', async ({ response }) => {
+  return response.ok({ status: 'healthy', timestamp: new Date().toISOString() })
+})
+
 // Controllers
 const AuthController = () => import('#controllers/auth_controller')
 const UsersController = () => import('#controllers/users_controller')

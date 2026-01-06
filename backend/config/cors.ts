@@ -1,3 +1,4 @@
+import env from '#start/env'
 import { defineConfig } from '@adonisjs/cors'
 
 /**
@@ -8,11 +9,17 @@ import { defineConfig } from '@adonisjs/cors'
  */
 const corsConfig = defineConfig({
   enabled: true,
-  origin: [
-    'http://localhost:9000', // quasar dev
-    'http://127.0.0.1:9000',
-  ],
-  methods: ['GET', 'HEAD', 'POST', 'PUT', 'DELETE'],
+  origin: (origin) => {
+    // Allow all origins in development
+    if (!env.get('NODE_ENV') || env.get('NODE_ENV') === 'development') {
+      return true
+    }
+    
+    // In production, check against allowed origins
+    const allowedOrigins = env.get('CORS_ORIGINS', 'http://localhost').split(',')
+    return allowedOrigins.includes(origin) || origin === undefined
+  },
+  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
   headers: true,
   exposeHeaders: [],
   credentials: true,
