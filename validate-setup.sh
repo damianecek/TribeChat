@@ -61,13 +61,9 @@ else
     echo "✅ Docker is installed"
 fi
 
-if ! command -v docker compose &> /dev/null; then
-    if ! docker compose version &> /dev/null; then
-        echo "❌ Docker Compose not found"
-        ERRORS=$((ERRORS + 1))
-    else
-        echo "✅ Docker Compose is installed"
-    fi
+if ! docker compose version &> /dev/null 2>&1; then
+    echo "❌ Docker Compose not found"
+    ERRORS=$((ERRORS + 1))
 else
     echo "✅ Docker Compose is installed"
 fi

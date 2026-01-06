@@ -147,7 +147,7 @@ docker compose down -v
 
 ## Dokumentácia
 
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Komplетný deployment guide
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Complete deployment guide
 - [DB_diagram.jpeg](DB_diagram.jpeg) - Databázová schéma
 
 ---

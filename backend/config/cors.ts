@@ -27,8 +27,18 @@ const corsConfig = defineConfig({
     // Check if origin is in allowed list
     return allowedOrigins.some(allowed => {
       // Support wildcards for local network (e.g., http://192.168.*.*)
+      // Only allow wildcards in IP addresses for local network access
       if (allowed.includes('*')) {
-        const regex = new RegExp('^' + allowed.replace(/\*/g, '.*') + '$')
+        // Validate that wildcards are only in valid positions (IP octets)
+        // Pattern: http(s)://192.168.*.* or http(s)://10.0.*.*
+        const isValidWildcard = /^https?:\/\/(\d{1,3}\.){0,3}(\*\.?)+:?\d*$/.test(allowed)
+        
+        if (!isValidWildcard) {
+          console.warn(`⚠️  Invalid wildcard pattern: ${allowed}. Wildcards should only be used for IP addresses.`)
+          return false
+        }
+        
+        const regex = new RegExp('^' + allowed.replace(/\*/g, '[0-9]{1,3}').replace(/\./g, '\\.') + '$')
         return regex.test(origin)
       }
       return origin === allowed
