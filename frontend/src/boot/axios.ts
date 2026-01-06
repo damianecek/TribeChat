@@ -1,11 +1,12 @@
 import { boot } from 'quasar/wrappers'
 import axios from 'axios'
 import { authManager } from 'src/services'
+import { appConfig } from 'src/config/app.config'
 
 
 
 const api = axios.create({
-  baseURL: 'http://localhost:3333', // adonis backend
+  baseURL: appConfig.apiUrl,
   withCredentials: true,
   headers: {}
 })

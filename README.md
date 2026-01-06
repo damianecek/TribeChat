@@ -1,11 +1,14 @@
 # Projekt Setup
 
 Tento projekt beží cez **Docker Compose** (frontend + backend + databáza).
-Postupuj podľa krokov nižšie, aby si ho rozbehal lokálne.
+
+> 📚 **Pre podrobný deployment guide (vrátane network access a production deployment)**, pozri [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ---
 
-## 1. Naklonovanie repozitára
+## Rýchly Štart (Development)
+
+### 1. Naklonovanie repozitára
 
 ```bash
 git clone https://github.com/damianecek/TribeChat.git
@@ -45,17 +48,77 @@ Stačí spustiť:
 docker compose up --build
 ```
 
+Alebo použi pripravený skript:
+
+```bash
+./start-dev.sh
+```
+
 ---
 
 ## 5. Hotovo
 
 * **Frontend** bude bežať na [http://localhost:9000](http://localhost:9000) (v dev režime).
 * **Backend API** bude bežať na [http://localhost:3333](http://localhost:3333).
+* **Health Check**: [http://localhost:3333/health](http://localhost:3333/health)
 * Databáza (Postgres) beží na porte `5432`.
 
 Migrácie sa spustia automaticky pri štarte backendu.
 
 ---
+
+## Prístup z Iných Zariadení v Sieti
+
+Pre prístup z mobilov alebo iných zariadení na rovnakej sieti:
+
+1. **Zisti svoju lokálnu IP adresu**:
+   ```bash
+   hostname -I  # Linux/Mac
+   ipconfig     # Windows
+   ```
+
+2. **Nakonfiguruj frontend** (`frontend/.env`):
+   ```env
+   VITE_API_URL=http://TVOJA_LOKALNA_IP:3333
+   VITE_WS_URL=http://TVOJA_LOKALNA_IP:3333
+   ```
+
+3. **Aktualizuj CORS** (`backend/.env`):
+   ```env
+   ALLOWED_ORIGINS=http://localhost:9000,http://192.168.*.*:9000
+   ```
+
+4. **Reštartuj aplikáciu**:
+   ```bash
+   docker compose down
+   docker compose up --build
+   ```
+
+5. **Na iných zariadeniach otvor**: `http://TVOJA_LOKALNA_IP:9000`
+
+> 📖 Viac detailov nájdeš v [DEPLOYMENT.md](DEPLOYMENT.md)
+
+---
+
+## Production Deployment
+
+Pre production deployment použi:
+
+```bash
+./start-prod.sh
+```
+
+Alebo manuálne:
+
+```bash
+docker compose -f docker-compose.production.yml up --build -d
+```
+
+> ⚠️ **Pred production deploymentom** si prečítaj [DEPLOYMENT.md](DEPLOYMENT.md) pre kompletnú konfiguráciu!
+
+---
+
+## Resetovanie Databázy
 
 Ak by si chcel databázu resetovať, použi:
 
@@ -64,3 +127,33 @@ docker compose down -v
 ```
 
 (tým zmažeš aj databázový volume).
+
+---
+
+## Príkazy
+
+| Príkaz | Popis |
+|--------|-------|
+| `./validate-setup.sh` | Skontroluje konfiguráciu pred spustením |
+| `./get-network-config.sh` | Zobrazí konfiguráciu pre network access |
+| `./start-dev.sh` | Spustí dev server s network info |
+| `./start-prod.sh` | Spustí production server |
+| `docker compose up` | Spustí development server |
+| `docker compose down` | Zastaví containery |
+| `docker compose down -v` | Zastaví a zmaže databázový volume |
+| `docker compose logs [service]` | Zobrazí logy (napr. `backend`, `frontend`, `db`) |
+
+---
+
+## Dokumentácia
+
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Complete deployment guide
+- [DB_diagram.jpeg](DB_diagram.jpeg) - Databázová schéma
+
+---
+
+## Podpora
+
+Pre problémy a otázky:
+- GitHub Issues: https://github.com/damianecek/TribeChat/issues
+- Deployment Guide: [DEPLOYMENT.md](DEPLOYMENT.md)

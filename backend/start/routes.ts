@@ -10,6 +10,15 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
 
+// Health check endpoint - no authentication required
+router.get('/health', async ({ response }) => {
+  return response.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'TribeChat API'
+  })
+})
+
 // Controllers
 const AuthController = () => import('#controllers/auth_controller')
 const UsersController = () => import('#controllers/users_controller')

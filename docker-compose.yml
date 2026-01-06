@@ -43,6 +43,8 @@ services:
       - "9000:9000"
     environment:
       - HOST=0.0.0.0
+      - VITE_API_URL=http://localhost:3333
+      - VITE_WS_URL=http://localhost:3333
     depends_on:
       - backend
 
