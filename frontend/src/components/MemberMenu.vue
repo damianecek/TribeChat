@@ -12,84 +12,62 @@
         <div v-if="usersInChannel.length" class="q-mb-md">
           <div class="text-caption text-grey q-pl-sm q-mb-xs">In this channel</div>
 
-          <q-item v-for="userItem in usersInChannel" :key="userItem.id" clickable>
-            <q-item-section avatar>
-              <q-avatar :icon="'person'" color="primary" text-color="white" class="status-avatar"
-                :style="{ '--status-color': getStatusColor(userItem.status) }" />
-            </q-item-section>
+          <MemberListItem
+            v-for="userItem in usersInChannel"
+            :key="userItem.id"
+            :user="userItem"
+          >
+            <template #menu>
+              <q-list style="min-width: 130px">
+                <q-item clickable v-close-popup @click="openProfile(userItem)">
+                  <q-item-section>Profile</q-item-section>
+                </q-item>
 
-            <q-item-section>
-              <q-item-label class="user-name">{{ userItem.nickname }}</q-item-label>
-              <q-item-label caption>{{ userItem.status }}</q-item-label>
-            </q-item-section>
+                <q-item v-if="isOwner" clickable v-close-popup @click="kickUser(userItem)">
+                  <q-item-section class="text-warning">Kick</q-item-section>
+                </q-item>
 
-            <q-item-section side>
-              <q-btn dense flat round icon="more_vert" @click.stop>
-                <q-menu auto-close class="no-shadow">
-                  <q-list style="min-width: 130px">
-                    <q-item clickable v-close-popup @click="openProfile(userItem)">
-                      <q-item-section>Profile</q-item-section>
-                    </q-item>
+                <q-item v-if="isOwner" clickable v-close-popup @click="banUser(userItem)">
+                  <q-item-section class="text-negative">Ban</q-item-section>
+                </q-item>
 
-                    <!-- Kick -->
-                    <q-item v-if="isOwner" clickable v-close-popup @click="kickUser(userItem)">
-                      <q-item-section class="text-warning">Kick</q-item-section>
-                    </q-item>
-
-                    <!-- Ban / Vote Ban -->
-                    <q-item v-if="isOwner" clickable v-close-popup @click="banUser(userItem)">
-                      <q-item-section class="text-negative">Ban</q-item-section>
-                    </q-item>
-
-                    <q-item v-else clickable v-close-popup @click="voteBanUser(userItem)">
-                      <q-item-section class="text-negative">Vote Ban</q-item-section>
-                    </q-item>
-                  </q-list>
-                </q-menu>
-              </q-btn>
-            </q-item-section>
-          </q-item>
+                <q-item v-else clickable v-close-popup @click="voteBanUser(userItem)">
+                  <q-item-section class="text-negative">Vote Ban</q-item-section>
+                </q-item>
+              </q-list>
+            </template>
+          </MemberListItem>
         </div>
 
         <!-- OTHER USERS -->
         <div v-if="otherUsers.length">
           <div class="text-caption text-grey q-pl-sm q-mb-xs">Other users</div>
 
-          <q-item v-for="userItem in otherUsers" :key="userItem.id">
-          <q-item-section avatar>
-            <q-avatar :icon="'person'" color="primary" text-color="white" class="status-avatar"
-              :style="{ '--status-color': getStatusColor(userItem.status) }" />
-          </q-item-section>
+          <MemberListItem
+            v-for="userItem in otherUsers"
+            :key="userItem.id"
+            :user="userItem"
+          >
+            <template #menu>
+              <q-list style="min-width: 130px">
+                <q-item clickable v-close-popup @click="openProfile(userItem)">
+                  <q-item-section>Profile</q-item-section>
+                </q-item>
 
-          <q-item-section>
-            <q-item-label class="user-name">{{ userItem.nickname }}</q-item-label>
-            <q-item-label caption>{{ userItem.status }}</q-item-label>
-          </q-item-section>
+                <q-item v-if="!isOwner || !isBanned(userItem.id)" clickable v-close-popup @click="inviteUser(userItem)">
+                  <q-item-section class="text-positive">Invite</q-item-section>
+                </q-item>
 
-          <q-item-section side>
-            <q-btn dense flat round icon="more_vert" @click.stop>
-              <q-menu auto-close class="no-shadow">
-                <q-list style="min-width: 130px">
-                  <q-item clickable v-close-popup @click="openProfile(userItem)">
-                    <q-item-section>Profile</q-item-section>
-                  </q-item>
+                <q-item v-if="isOwner && isBanned(userItem.id)" clickable v-close-popup @click="unbanUser(userItem)">
+                  <q-item-section class="text-positive">Unban</q-item-section>
+                </q-item>
 
-                  <q-item v-if="!isOwner || !isBanned(userItem.id)" clickable v-close-popup @click="inviteUser(userItem)">
-                    <q-item-section class="text-positive">Invite</q-item-section>
-                  </q-item>
-
-                  <q-item v-if="isOwner && isBanned(userItem.id)" clickable v-close-popup @click="unbanUser(userItem)">
-                    <q-item-section class="text-positive">Unban</q-item-section>
-                  </q-item>
-
-                  <q-item v-if="isOwner && !isBanned(userItem.id)" clickable v-close-popup @click="banUser(userItem)">
-                    <q-item-section class="text-negative">Ban</q-item-section>
-                  </q-item>
-                </q-list>
-              </q-menu>
-            </q-btn>
-            </q-item-section>
-          </q-item>
+                <q-item v-if="isOwner && !isBanned(userItem.id)" clickable v-close-popup @click="banUser(userItem)">
+                  <q-item-section class="text-negative">Ban</q-item-section>
+                </q-item>
+              </q-list>
+            </template>
+          </MemberListItem>
         </div>
       </q-list>
     </q-scroll-area>
@@ -106,6 +84,7 @@ import { useUserStore } from 'stores/user'
 import { useTabsStore } from 'stores/tabs'
 import { useAuthStore } from 'stores/auth'
 import type { User } from 'src/types/user'
+import MemberListItem from 'components/user/MemberListItem.vue'
 
 const router = useRouter()
 const $q = useQuasar()
@@ -172,16 +151,6 @@ function voteBanUser(user: User) {
   if (!activeChannelId.value) return
   userChannelsStore.voteBanUser(user.id, activeChannelId.value)
   $q.notify({ type: 'warning', message: `Voted to ban ${user.nickname}` })
-}
-
-function getStatusColor(status: string): string {
-  switch (status.toLowerCase()) {
-    case 'online': return 'limegreen'
-    case 'away': return 'gold'
-    case 'dnd': return 'orangered'
-    case 'offline': return 'gray'
-    default: return 'lightgray'
-  }
 }
 </script>
 
