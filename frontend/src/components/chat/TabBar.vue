@@ -32,7 +32,7 @@ import { truncate } from 'src/utils'
 
 interface Props {
   tabs: Tab[]
-  activeTabId?: string
+  activeTabId?: string | undefined
   maxLabelLength?: number
 }
 

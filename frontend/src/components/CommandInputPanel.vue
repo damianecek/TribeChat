@@ -1,12 +1,13 @@
 <template>
   <MessageInput
-    v-model="text.value"
+    v-model="text"
     @typing="onTyping"
     @send="sendMessage"
   />
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useQuasar } from 'quasar'
 import { useTabsStore } from 'src/stores/tabs'
 import { useMessagesStore } from 'src/stores/messages'
@@ -22,7 +23,16 @@ const messagesStore = useMessagesStore()
 const auth = useAuthStore()
 
 const { executeCommand } = useCommands()
-const { text, onTyping } = useTypingIndicator(() => tabStore.activeTab?.id || '')
+const typingIndicator = useTypingIndicator(() => tabStore.activeTab?.id || '')
+
+// Use the text ref from typing indicator
+const text = ref('')
+
+// Wrap the onTyping function to use our local text
+const onTyping = () => {
+  typingIndicator.text.value = text.value
+  typingIndicator.onTyping()
+}
 
 const sendMessage = () => {
   const content = text.value.trim()

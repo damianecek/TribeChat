@@ -7,7 +7,7 @@
       <TabBar
         v-if="windowWidth > 600"
         :tabs="tabsStore.tabs"
-        :active-tab-id="tabsStore.activeTab?.id"
+        :active-tab-id="tabsStore.activeTab?.id || undefined"
         @change="onTabChange"
         @close="tabsStore.closeTab"
       />
@@ -16,7 +16,7 @@
       <TabDropdown
         v-else
         :tabs="tabsStore.tabs"
-        :active-tab-id="tabsStore.activeTab?.id"
+        :active-tab-id="tabsStore.activeTab?.id || undefined"
         @change="onTabChange"
         @close="tabsStore.closeTab"
       />

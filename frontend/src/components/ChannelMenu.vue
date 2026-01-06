@@ -106,7 +106,7 @@
     <div class="q-px-md q-pb-md q-mt-auto">
       <UserStatusCard
         v-if="isLoggedIn"
-        :display-name="user?.nickname"
+        :display-name="user?.nickname || 'User'"
         :status="status"
         @update:status="setStatus"
         @profile-click="goProfile"
