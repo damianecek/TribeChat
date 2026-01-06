@@ -39,8 +39,9 @@ interface TypingUserInfo {
 const typingUsers = reactive<Record<string, TypingUserInfo>>({})
 
 function toggleDraft(id: string | number) {
-  if (!typingUsers[id]) return
-  typingUsers[id].expanded = !typingUsers[id].expanded
+  const stringId = String(id)
+  if (!typingUsers[stringId]) return
+  typingUsers[stringId].expanded = !typingUsers[stringId].expanded
 }
 
 function setupTypingListeners() {

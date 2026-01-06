@@ -8,7 +8,7 @@ export function useTypingIndicator(channelIdRef: () => string) {
   const socket = computed(() => socketService.getSocket())
   
   let isTyping = false
-  let typingTimeout: ReturnType<typeof setTimeout>
+  let typingTimeout: ReturnType<typeof setTimeout> | undefined
   let lastDraftEmit = 0
 
   const text = ref('')
@@ -35,7 +35,9 @@ export function useTypingIndicator(channelIdRef: () => string) {
     }
 
     // Reset stop timer
-    clearTimeout(typingTimeout)
+    if (typingTimeout) {
+      clearTimeout(typingTimeout)
+    }
     typingTimeout = setTimeout(() => {
       isTyping = false
       socket.value?.emit('typing:stop', { channelId })
@@ -49,7 +51,9 @@ export function useTypingIndicator(channelIdRef: () => string) {
     const channelId = channelIdRef()
     if (!channelId || !isTyping) return
 
-    clearTimeout(typingTimeout)
+    if (typingTimeout) {
+      clearTimeout(typingTimeout)
+    }
     isTyping = false
     socket.value?.emit('typing:stop', { channelId })
   }

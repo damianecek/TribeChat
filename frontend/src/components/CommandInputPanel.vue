@@ -25,10 +25,10 @@ const auth = useAuthStore()
 const { executeCommand } = useCommands()
 const typingIndicator = useTypingIndicator(() => tabStore.activeTab?.id || '')
 
-// Use the text ref from typing indicator
+// Local text ref for v-model
 const text = ref('')
 
-// Wrap the onTyping function to use our local text
+// Sync text with typing indicator and trigger typing events
 const onTyping = () => {
   typingIndicator.text.value = text.value
   typingIndicator.onTyping()
